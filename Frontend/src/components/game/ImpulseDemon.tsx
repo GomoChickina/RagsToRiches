@@ -6,178 +6,342 @@ interface DemonProps {
 }
 
 export const ImpulseDemon = ({ state }: DemonProps) => {
-    // Palette
     const c = {
-        base: '#a855f7',      // Purple (Normal)
-        glow: '#d8b4fe',      // Light Purple
-        dark: '#581c87',      // Dark Outline
-        eyes: '#fdf4ff',      // White
-        red: '#dc2626',       // <--- NEW: Evil Red
-        scared: '#60a5fa',    // Blue (Scared skin)
-        scaredDark: '#1e3a8a' // Dark Blue (Scared Outline)
+        body: '#b97cf8',
+        bodyLight: '#d4a8fb',
+        bodyDark: '#8b46f0',
+        outline: '#5b21b6',
+        belly: '#e9d5ff',
+        eyeWhite: '#ffffff',
+        pupil: '#3b0764',
+        cheek: '#f0abfc',
+        horn: '#7c3aed',
+        hornTip: '#a78bfa',
+        tooth: '#ffffff',
+        toothOutline: '#c4b5fd',
+        tongue: '#fb7185',
+        scared: '#93c5fd',
+        scaredLight: '#bfdbfe',
+        scaredDark: '#1e40af',
+        scaredOutline: '#1d4ed8',
     };
 
-    // --- ANIMATIONS ---
+    const isScared = state === 'scared';
+    const isLaughing = state === 'laughing';
 
-    // 1. Body: Floats (Idle) vs Shivers (Scared)
+    const bodyFill = isScared ? c.scared : c.body;
+    const bodyFillLight = isScared ? c.scaredLight : c.bodyLight;
+    const bodyOutline = isScared ? c.scaredOutline : c.outline;
+    const bellyFill = isScared ? c.scaredLight : c.belly;
+    const hornFill = isScared ? c.scaredDark : c.horn;
+
+    // ── BODY ─────────────────────────────────────────────────────
     const bodyAnim = {
         idle: {
             y: [0, -8, 0],
-            x: 0,
-            rotate: 0,
-            filter: "drop-shadow(0px 0px 10px rgba(168, 85, 247, 0.6))",
-            transition: { duration: 3, repeat: Infinity, ease: "easeInOut" as const }
+            rotate: [0, -1.5, 1.5, 0],
+            transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const },
         },
         laughing: {
-            scale: [1, 1.1, 1],
-            filter: "drop-shadow(0px 0px 20px rgba(220, 38, 38, 0.8))", // Glow turns RED too!
-            transition: { duration: 0.4, repeat: Infinity }
+            y: [0, -14, 4, -10, 2, 0],
+            rotate: [0, -8, 9, -6, 7, 0],
+            scale: [1, 1.08, 0.96, 1.1, 0.97, 1],
+            transition: { duration: 0.55, repeat: Infinity, ease: 'easeInOut' as const },
         },
         scared: {
-            scale: 0.9,
-            x: [-2, 2, -2, 2, 0],
-            y: 5,
-            rotate: [-1, 1, -1],
-            filter: "drop-shadow(0px 0px 0px rgba(0,0,0,0))",
-            transition: { duration: 0.1, repeat: Infinity }
-        }
-    };
-
-    // 2. Jaw: Snaps (Laughing) vs Hangs Loose (Scared)
-    const jawAnim = {
-        idle: { y: 0, rotate: 0, x: 0 },
-        laughing: {
-            y: [0, 15, 0],
-            transition: { duration: 0.2, repeat: Infinity }
+            y: 10,
+            scale: 0.88,
+            x: [-2, 2, -1.5, 1.5, 0],
+            rotate: [-1, 1, -1, 1, 0],
+            transition: { duration: 0.18, repeat: Infinity },
         },
-        scared: {
-            y: 15,
-            x: 5,
-            rotate: 10,
-            transition: { duration: 0.4, type: "spring" as const }
-        }
     };
 
-    // 3. Horns: Perky (Idle) vs Droopy (Scared)
+    // ── HORNS ────────────────────────────────────────────────────
     const leftHornAnim = {
-        idle: { rotate: 0, y: 0 },
-        laughing: { rotate: -10, transition: { duration: 0.2, repeat: Infinity, repeatType: "reverse" as const } },
-        scared: { rotate: -45, y: 5, x: -5, transition: { duration: 0.5 } }
+        idle: { rotate: [0, -6, 6, 0], transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const } },
+        laughing: { rotate: [-12, 6, -12], y: [-2, 3, -2], transition: { duration: 0.55, repeat: Infinity } },
+        scared: { rotate: -40, y: 8, x: -6, transition: { duration: 0.35, type: 'spring' as const } },
     };
-
     const rightHornAnim = {
-        idle: { rotate: 0, y: 0 },
-        laughing: { rotate: 10, transition: { duration: 0.2, repeat: Infinity, repeatType: "reverse" as const } },
-        scared: { rotate: 45, y: 5, x: 5, transition: { duration: 0.5 } }
+        idle: { rotate: [0, 6, -6, 0], transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const, delay: 0.4 } },
+        laughing: { rotate: [12, -6, 12], y: [-2, 3, -2], transition: { duration: 0.55, repeat: Infinity, delay: 0.08 } },
+        scared: { rotate: 40, y: 8, x: 6, transition: { duration: 0.35, type: 'spring' as const } },
     };
 
-    // 4. EYES: White (Idle) -> Red (Laughing) -> Blue (Scared)
-    const eyeAnim = {
-        idle: { scale: 1, fill: c.eyes },
+    // ── TAIL ─────────────────────────────────────────────────────
+    const tailAnim = {
+        idle: {
+            d: [
+                'M 128 148 Q 158 148 162 130 Q 165 115 155 108',
+                'M 128 148 Q 160 152 165 133 Q 168 117 157 110',
+                'M 128 148 Q 158 148 162 130 Q 165 115 155 108',
+            ],
+            transition: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' as const },
+        },
         laughing: {
-            scale: [1, 1.2, 1],
-            fill: c.red, // <--- EYES TURN RED HERE
-            transition: { duration: 0.2, repeat: Infinity }
+            d: [
+                'M 128 148 Q 162 138 168 118 Q 172 102 162 96',
+                'M 128 148 Q 165 132 170 112 Q 173 96 163 90',
+                'M 128 148 Q 162 138 168 118 Q 172 102 162 96',
+            ],
+            transition: { duration: 0.45, repeat: Infinity },
         },
         scared: {
-            scale: 0.8,
-            fill: c.scared, // Eyes turn blue/dim
-        }
+            d: [
+                'M 128 148 Q 118 172 100 180 Q 85 186 78 178',
+                'M 128 148 Q 116 174 98 182 Q 83 188 76 180',
+                'M 128 148 Q 118 172 100 180 Q 85 186 78 178',
+            ],
+            transition: { duration: 0.25, repeat: Infinity },
+        },
     };
 
-    // 5. Sweat Drops (Only appear when Scared)
-    const sweatAnim = {
-        idle: { opacity: 0, y: -10 },
-        laughing: { opacity: 0 },
+    // ── JAW ──────────────────────────────────────────────────────
+    const jawAnim = {
+        idle: { y: 0, rotate: 0 },
+        laughing: {
+            y: [0, 16, 0, 18, 2, 16, 0],
+            rotate: [0, -3, 3, -2, 0],
+            transition: { duration: 0.55, repeat: Infinity },
+        },
         scared: {
-            opacity: [0, 1, 0],
-            y: [0, 15],
-            transition: { duration: 1, repeat: Infinity, ease: "easeOut" as const }
-        }
+            y: [18, 20, 18],
+            rotate: [0, 4, -4, 0],
+            transition: { duration: 0.22, repeat: Infinity },
+        },
     };
+
+    // ── ARMS ─────────────────────────────────────────────────────
+    const leftArmAnim = {
+        idle: { rotate: [0, 8, -4, 0], transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const } },
+        laughing: { rotate: [-20, 15, -20], y: [-4, 6, -4], transition: { duration: 0.55, repeat: Infinity } },
+        scared: { rotate: [-70, -80, -70], y: [-6, -4, -6], transition: { duration: 0.3, repeat: Infinity } },
+    };
+    const rightArmAnim = {
+        idle: { rotate: [0, -8, 4, 0], transition: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' as const, delay: 0.3 } },
+        laughing: { rotate: [20, -15, 20], y: [-4, 6, -4], transition: { duration: 0.55, repeat: Infinity, delay: 0.1 } },
+        scared: { rotate: [70, 80, 70], y: [-6, -4, -6], transition: { duration: 0.3, repeat: Infinity, delay: 0.1 } },
+    };
+
+    // ── SPARKLE (pure SVG — no emoji, no black box) ───────────────
+    const SparkleItem = ({ cx, cy, delay, r = 5 }: { cx: number; cy: number; delay: number; r?: number }) => (
+        <motion.g
+            animate={{ scale: [0, 1.3, 0], opacity: [0, 1, 0] }}
+            transition={{ duration: 0.75, repeat: Infinity, delay, ease: 'easeInOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: `${cx}px ${cy}px` }}
+        >
+            <rect x={cx - r * 0.2} y={cy - r} width={r * 0.4} height={r * 2} rx={r * 0.2} fill="#fbbf24" />
+            <rect x={cx - r} y={cy - r * 0.2} width={r * 2} height={r * 0.4} rx={r * 0.2} fill="#fbbf24" />
+            <rect x={cx - r * 0.2} y={cy - r * 0.7} width={r * 0.4} height={r * 1.4} rx={r * 0.2}
+                fill="#fde68a" style={{ transform: 'rotate(45deg)', transformBox: 'fill-box' as const, transformOrigin: 'center' }} />
+        </motion.g>
+    );
+
+    // ── SWEAT DROP ───────────────────────────────────────────────
+    const SweatDrop = ({ cx, cy, delay }: { cx: number; cy: number; delay: number }) => (
+        <motion.g
+            animate={isScared ? { y: [0, 22], opacity: [0, 0.9, 0] } : { opacity: 0, y: 0 }}
+            transition={{ duration: 0.9, repeat: Infinity, delay, ease: 'easeIn' }}
+        >
+            <ellipse cx={cx} cy={cy} rx="4" ry="6" fill="#60a5fa" />
+            <ellipse cx={cx} cy={cy - 4} rx="2" ry="2" fill="#93c5fd" opacity="0.7" />
+        </motion.g>
+    );
 
     return (
         <motion.svg
             width="100%"
             height="100%"
-            viewBox="0 0 200 200"
+            viewBox="0 0 200 210"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             animate={state}
             variants={bodyAnim}
             style={{ overflow: 'visible' }}
         >
+            {/* ── SHADOW ────────────────────────────────────────── */}
+            <motion.ellipse cx="100" cy="200" rx="45" ry="9"
+                fill={isScared ? 'rgba(30,64,175,0.15)' : 'rgba(91,33,182,0.2)'}
+                animate={{ scaleX: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: isLaughing ? 0.55 : 2.2, repeat: Infinity }}
+            />
 
-            {/* === HORNS === */}
+            {/* ── TAIL ──────────────────────────────────────────── */}
             <motion.path
-                d="M70 50 L 50 30"
-                stroke={state === 'scared' ? c.scaredDark : c.dark}
-                strokeWidth="6" strokeLinecap="round"
-                variants={leftHornAnim}
-                style={{ originX: "70px", originY: "50px" }}
+                stroke={hornFill} strokeWidth="7" strokeLinecap="round" fill="none"
+                variants={tailAnim} animate={state} initial={false}
             />
-            <motion.path
-                d="M130 50 L 150 30"
-                stroke={state === 'scared' ? c.scaredDark : c.dark}
-                strokeWidth="6" strokeLinecap="round"
-                variants={rightHornAnim}
-                style={{ originX: "130px", originY: "50px" }}
-            />
-
-            {/* === TOP SKULL === */}
-            <path
-                d="M60 100 V 80 C 60 40, 140 40, 140 80 V 100 H 60 Z"
-                fill={state === 'scared' ? c.scared : c.base}
-                stroke={state === 'scared' ? c.scaredDark : c.dark}
-                strokeWidth="4"
-            />
-
-            {/* === EYES (Animated) === */}
-            <motion.g variants={eyeAnim}>
-                <circle cx="85" cy="80" r="12" />
-                <circle cx="115" cy="80" r="12" />
-
-                {/* Pupils (Small dots) */}
-                <motion.circle
-                    cx="85" cy="80" r="4" fill={c.dark}
-                    animate={state === 'scared' ? { r: 2 } : { r: 4 }}
-                />
-                <motion.circle
-                    cx="115" cy="80" r="4" fill={c.dark}
-                    animate={state === 'scared' ? { r: 2 } : { r: 4 }}
-                />
-            </motion.g>
-
-            {/* === FLOATING JAW === */}
+            {/* Heart-shaped tail tip */}
             <motion.g
-                variants={jawAnim}
-                style={{ originX: "100px", originY: "100px" }}
+                animate={isLaughing
+                    ? { rotate: [0, 25, -10, 25], x: [0, 4, 0] }
+                    : isScared
+                        ? { rotate: [-20, 20, -20], x: [-2, 2, -2] }
+                        : { rotate: [0, 8, -8, 0] }}
+                transition={{ duration: isLaughing ? 0.45 : isScared ? 0.25 : 2.2, repeat: Infinity }}
+                style={{ transformBox: 'fill-box', transformOrigin: '156px 100px' }}
             >
-                <path
-                    d="M65 110 V 120 C 65 140, 135 140, 135 120 V 110 H 65 Z"
-                    fill={state === 'scared' ? c.scared : c.base}
-                    stroke={state === 'scared' ? c.scaredDark : c.dark}
-                    strokeWidth="4"
-                />
-                {/* Teeth */}
-                <path d="M85 110 V 125" stroke={state === 'scared' ? c.scaredDark : c.dark} strokeWidth="3" strokeLinecap="round" />
-                <path d="M100 110 V 125" stroke={state === 'scared' ? c.scaredDark : c.dark} strokeWidth="3" strokeLinecap="round" />
-                <path d="M115 110 V 125" stroke={state === 'scared' ? c.scaredDark : c.dark} strokeWidth="3" strokeLinecap="round" />
+                <circle cx="151" cy="97" r="5" fill={hornFill} />
+                <circle cx="161" cy="97" r="5" fill={hornFill} />
+                <polygon points="146,100 166,100 156,110" fill={hornFill} />
             </motion.g>
 
-            {/* === SWEAT DROPS === */}
-            <motion.path
-                d="M45 60 Q 40 70, 45 80 Q 50 70, 45 60"
-                fill="#3b82f6"
-                variants={sweatAnim}
-            />
-            <motion.path
-                d="M155 50 Q 150 60, 155 70 Q 160 60, 155 50"
-                fill="#3b82f6"
-                variants={sweatAnim}
-                transition={{ delay: 0.2 }}
-            />
+            {/* ── HORNS (rounded blobs, not spikes) ─────────────── */}
+            <motion.g
+                variants={leftHornAnim} animate={state} initial={false}
+                style={{ transformBox: 'fill-box', transformOrigin: '72px 52px' }}
+            >
+                <ellipse cx="72" cy="44" rx="9" ry="15" fill={hornFill} stroke={bodyOutline} strokeWidth="2.5"
+                    style={{ transform: 'rotate(-15deg)', transformBox: 'fill-box' as const, transformOrigin: 'center' }} />
+                <ellipse cx="72" cy="34" rx="5" ry="6" fill={c.hornTip} opacity="0.6" />
+            </motion.g>
+            <motion.g
+                variants={rightHornAnim} animate={state} initial={false}
+                style={{ transformBox: 'fill-box', transformOrigin: '128px 52px' }}
+            >
+                <ellipse cx="128" cy="44" rx="9" ry="15" fill={hornFill} stroke={bodyOutline} strokeWidth="2.5"
+                    style={{ transform: 'rotate(15deg)', transformBox: 'fill-box' as const, transformOrigin: 'center' }} />
+                <ellipse cx="128" cy="34" rx="5" ry="6" fill={c.hornTip} opacity="0.6" />
+            </motion.g>
 
+            {/* ── BODY (chubby oval) ────────────────────────────── */}
+            <ellipse cx="100" cy="150" rx="46" ry="42" fill={bodyFill} stroke={bodyOutline} strokeWidth="3.5" />
+            {/* Belly patch */}
+            <ellipse cx="100" cy="157" rx="28" ry="25" fill={bellyFill} opacity="0.55" />
+
+            {/* ── ARMS ──────────────────────────────────────────── */}
+            <motion.g
+                variants={leftArmAnim} animate={state} initial={false}
+                style={{ transformBox: 'fill-box', transformOrigin: '65px 140px' }}
+            >
+                <ellipse cx="50" cy="150" rx="10" ry="14" fill={bodyFill} stroke={bodyOutline} strokeWidth="3" />
+                <circle cx="44" cy="161" r="8" fill={bodyFillLight} stroke={bodyOutline} strokeWidth="2.5" />
+            </motion.g>
+            <motion.g
+                variants={rightArmAnim} animate={state} initial={false}
+                style={{ transformBox: 'fill-box', transformOrigin: '135px 140px' }}
+            >
+                <ellipse cx="150" cy="150" rx="10" ry="14" fill={bodyFill} stroke={bodyOutline} strokeWidth="3" />
+                <circle cx="156" cy="161" r="8" fill={bodyFillLight} stroke={bodyOutline} strokeWidth="2.5" />
+            </motion.g>
+
+            {/* ── HEAD ──────────────────────────────────────────── */}
+            <circle cx="100" cy="88" r="46" fill={bodyFill} stroke={bodyOutline} strokeWidth="3.5" />
+            {/* Sheen */}
+            <ellipse cx="85" cy="68" rx="14" ry="8" fill={bodyFillLight} opacity="0.3"
+                style={{ transform: 'rotate(-25deg)', transformBox: 'fill-box' as const, transformOrigin: 'center' }} />
+            {/* Ear nubs */}
+            <circle cx="58" cy="80" r="10" fill={bodyFill} stroke={bodyOutline} strokeWidth="3" />
+            <circle cx="142" cy="80" r="10" fill={bodyFill} stroke={bodyOutline} strokeWidth="3" />
+            <circle cx="58" cy="80" r="5" fill={bodyFillLight} opacity="0.5" />
+            <circle cx="142" cy="80" r="5" fill={bodyFillLight} opacity="0.5" />
+
+            {/* ── EYES ──────────────────────────────────────────── */}
+            {isLaughing ? (
+                <g>
+                    {/* Happy squints */}
+                    <path d="M 78 84 Q 87 74 96 84" stroke={bodyOutline} strokeWidth="4" strokeLinecap="round" fill="none" />
+                    <path d="M 104 84 Q 113 74 122 84" stroke={bodyOutline} strokeWidth="4" strokeLinecap="round" fill="none" />
+                    <path d="M 74 88 L 70 94" stroke={bodyOutline} strokeWidth="2" strokeLinecap="round" opacity="0.35" />
+                    <path d="M 126 88 L 130 94" stroke={bodyOutline} strokeWidth="2" strokeLinecap="round" opacity="0.35" />
+                </g>
+            ) : isScared ? (
+                <g>
+                    {/* Wide eyes */}
+                    <circle cx="85" cy="84" r="13" fill={c.eyeWhite} stroke={bodyOutline} strokeWidth="2.5" />
+                    <circle cx="115" cy="84" r="13" fill={c.eyeWhite} stroke={bodyOutline} strokeWidth="2.5" />
+                    <motion.circle cx="85" cy="84" r="5" fill={c.scaredDark}
+                        animate={{ cx: [83, 87, 85], cy: [82, 86, 84] }}
+                        transition={{ duration: 0.28, repeat: Infinity }}
+                    />
+                    <motion.circle cx="115" cy="84" r="5" fill={c.scaredDark}
+                        animate={{ cx: [113, 117, 115], cy: [82, 86, 84] }}
+                        transition={{ duration: 0.28, repeat: Infinity, delay: 0.12 }}
+                    />
+                    <circle cx="80" cy="79" r="2.5" fill={c.eyeWhite} opacity="0.9" />
+                    <circle cx="110" cy="79" r="2.5" fill={c.eyeWhite} opacity="0.9" />
+                </g>
+            ) : (
+                <g>
+                    {/* Normal big cute eyes */}
+                    <circle cx="85" cy="84" r="13" fill={c.eyeWhite} stroke={bodyOutline} strokeWidth="2.5" />
+                    <circle cx="115" cy="84" r="13" fill={c.eyeWhite} stroke={bodyOutline} strokeWidth="2.5" />
+                    <motion.circle cx="85" cy="84" r="6" fill={c.pupil}
+                        animate={{ cx: [84, 87, 85], cy: [83, 85, 84] }}
+                        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' as const }}
+                    />
+                    <motion.circle cx="115" cy="84" r="6" fill={c.pupil}
+                        animate={{ cx: [114, 117, 115], cy: [83, 85, 84] }}
+                        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' as const, delay: 1.2 }}
+                    />
+                    <circle cx="80" cy="79" r="3" fill={c.eyeWhite} opacity="0.9" />
+                    <circle cx="110" cy="79" r="3" fill={c.eyeWhite} opacity="0.9" />
+                    <circle cx="82" cy="77" r="1.2" fill={c.eyeWhite} opacity="0.6" />
+                    <circle cx="112" cy="77" r="1.2" fill={c.eyeWhite} opacity="0.6" />
+                </g>
+            )}
+
+            {/* ── ROSY CHEEKS ────────────────────────────────────── */}
+            <ellipse cx="72" cy="97" rx="10" ry="7" fill={c.cheek} opacity={isScared ? 0.12 : 0.32} />
+            <ellipse cx="128" cy="97" rx="10" ry="7" fill={c.cheek} opacity={isScared ? 0.12 : 0.32} />
+
+            {/* ── MOUTH / JAW ─────────────────────────────────────── */}
+            <motion.g
+                variants={jawAnim} animate={state} initial={false}
+                style={{ transformBox: 'fill-box', transformOrigin: '100px 106px' }}
+            >
+                {isLaughing ? (
+                    <g>
+                        <path d="M 76 104 Q 100 130 124 104" fill="#3b0764" stroke={bodyOutline} strokeWidth="3" strokeLinecap="round" />
+                        {/* 2 small rounded teeth — cute */}
+                        <rect x="88" y="104" width="10" height="8" rx="3" fill={c.tooth} stroke={c.toothOutline} strokeWidth="1.5" />
+                        <rect x="102" y="104" width="10" height="8" rx="3" fill={c.tooth} stroke={c.toothOutline} strokeWidth="1.5" />
+                        <motion.ellipse cx="100" cy="120" rx="12" ry="8" fill={c.tongue}
+                            animate={{ scaleY: [1, 1.2, 1], y: [0, 3, 0] }}
+                            transition={{ duration: 0.45, repeat: Infinity }}
+                        />
+                    </g>
+                ) : isScared ? (
+                    <motion.ellipse cx="100" cy="110" rx="14" ry="10" fill="#3b0764" stroke={bodyOutline} strokeWidth="3"
+                        animate={{ rx: [14, 12, 14], ry: [10, 12, 10] }}
+                        transition={{ duration: 0.22, repeat: Infinity }}
+                    />
+                ) : (
+                    <path d="M 86 108 Q 100 118 114 108" stroke={bodyOutline} strokeWidth="3.5" strokeLinecap="round" fill="none" />
+                )}
+            </motion.g>
+
+            {/* ── LEGS ────────────────────────────────────────────── */}
+            <motion.g
+                animate={isLaughing ? { x: [-3, 3, -3], y: [0, -4, 0] } : isScared ? { y: [0, -3, 0] } : {}}
+                transition={{ duration: isLaughing ? 0.55 : 0.25, repeat: Infinity }}
+            >
+                <rect x="76" y="184" width="18" height="20" rx="9" fill={bodyFill} stroke={bodyOutline} strokeWidth="3" />
+                <ellipse cx="85" cy="205" rx="14" ry="7" fill={bodyFillLight} stroke={bodyOutline} strokeWidth="2.5" />
+            </motion.g>
+            <motion.g
+                animate={isLaughing ? { x: [3, -3, 3], y: [0, -4, 0] } : isScared ? { y: [0, -3, 0] } : {}}
+                transition={{ duration: isLaughing ? 0.55 : 0.25, repeat: Infinity, delay: 0.15 }}
+            >
+                <rect x="106" y="184" width="18" height="20" rx="9" fill={bodyFill} stroke={bodyOutline} strokeWidth="3" />
+                <ellipse cx="115" cy="205" rx="14" ry="7" fill={bodyFillLight} stroke={bodyOutline} strokeWidth="2.5" />
+            </motion.g>
+
+            {/* ── SWEAT DROPS ─────────────────────────────────────── */}
+            <SweatDrop cx={44} cy={60} delay={0} />
+            <SweatDrop cx={30} cy={82} delay={0.35} />
+            <SweatDrop cx={162} cy={58} delay={0.18} />
+
+            {/* ── SPARKLES — pure geometry, zero emoji, zero black box */}
+            {isLaughing && (
+                <>
+                    <SparkleItem cx={30} cy={42} delay={0} r={6} />
+                    <SparkleItem cx={170} cy={38} delay={0.2} r={5} />
+                    <SparkleItem cx={20} cy={92} delay={0.4} r={5} />
+                    <SparkleItem cx={180} cy={82} delay={0.15} r={7} />
+                </>
+            )}
         </motion.svg>
     );
 };

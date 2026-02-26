@@ -35,6 +35,41 @@ interface GameBoardProps {
   onGameEnd: (score: number) => void;
 }
 
+// ─── Exact replica of RagsToRichesCalculator.java ────────────────────────────────────────────
+
+// Mirrors getSymbolMultiplier() in Java.
+// Effect fields arrive from MongoDB as symbol strings: "+", "++", "+++", "-", "--", "---"
+// or as a raw numeric string like "1500" for explicit cash (those score 0 for ranking).
+function getSymbolMultiplier(value: string | number): number {
+  const text = String(value ?? '').trim();
+  switch (text) {
+    case '+++': return 3;
+    case '++': return 2;
+    case '+': return 1;
+    case '-': return 0;
+    case '--': return -1;
+    case '---': return -2;
+    default: return 0;
+  }
+}
+
+// Mirrors the totalScore formula: (8 * pflMult) + (4 * hapMult) + (6 * monMult)
+function optionScore(option: SituationCard['options'][number]): number {
+  const pflMult = getSymbolMultiplier(option.effect.financeKnowledge);
+  const hapMult = getSymbolMultiplier(option.effect.happiness);
+  const monMult = getSymbolMultiplier(option.effect.money);
+  return (8 * pflMult) + (4 * hapMult) + (6 * monMult);
+}
+
+// Returns the index of the best and worst options for the active card.
+function getBestAndWorstIndex(options: SituationCard['options']): { bestIndex: number; worstIndex: number } {
+  const scores = options.map(optionScore);
+  const bestIndex = scores.indexOf(Math.max(...scores));
+  const worstIndex = scores.indexOf(Math.min(...scores));
+  return { bestIndex, worstIndex };
+}
+
+
 export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
@@ -71,13 +106,17 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
     setIsProcessing(true);
     setPlayerReaction('thinking');
 
+    // ── Determine best/worst BEFORE the API call, using local effect data ──
+    const { bestIndex, worstIndex } = getBestAndWorstIndex(activeCard.options);
+    const isAbsoluteBest = choiceIndex === bestIndex;
+    const isAbsoluteWorst = choiceIndex === worstIndex;
+
     try {
       const updatedUser = await api.makeChoice(playerCharacter.id, activeCard.situationId, choiceIndex);
       if (!updatedUser) throw new Error("Failed to process turn");
 
       const newScore = updatedUser.overallScore;
       const scoreDelta = newScore - currentScore;
-      const isGoodTurn = scoreDelta > 0;
 
       setStats(updatedUser.stats);
       setCurrentScore(newScore);
@@ -88,21 +127,31 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
         audio.play().catch(() => { });
       };
 
-      if (!isGoodTurn) {
-        setIsEvilAttacking(true);
-        playSoundEffect('villain');
-        setPlayerReaction('sad');
-        setBattleMessage(`😈 ${evilCharacter?.name} laughs at your mistake!`);
-        setTimeout(() => { setIsEvilAttacking(false); setPlayerReaction('neutral'); }, 2500);
-      } else {
+      if (isAbsoluteBest) {
+        // ── BEST choice: hero victory dance, villain cowers ──────────────
         setIsEvilAttacking(false);
         playSoundEffect('hero');
         setPlayerReaction('happy');
         const damage = Math.min(scoreDelta * 2, 30);
         setDamageDealt(damage);
         setEvilHealth(prev => Math.max(0, prev - damage));
-        setBattleMessage("🎉 Smart Move! Score Up!");
+        setBattleMessage('🏆 Perfect Choice!');
         setTimeout(() => { setPlayerReaction('neutral'); setDamageDealt(undefined); }, 2500);
+
+      } else if (isAbsoluteWorst) {
+        // ── WORST choice: villain laughs, hero looks sad ─────────────────
+        setIsEvilAttacking(true);
+        playSoundEffect('villain');
+        setPlayerReaction('sad');
+        setBattleMessage(`😈 ${evilCharacter?.name} laughs at your mistake!`);
+        setTimeout(() => { setIsEvilAttacking(false); setPlayerReaction('neutral'); }, 2500);
+
+      } else {
+        // ── Middle choice: no dancing, just a gentle positive/negative cue ──
+        setIsEvilAttacking(false);
+        setPlayerReaction(scoreDelta >= 0 ? 'neutral' : 'sad');
+        setBattleMessage(scoreDelta >= 0 ? '👍 Decent choice.' : '😬 Could be better...');
+        setTimeout(() => { setPlayerReaction('neutral'); }, 2500);
       }
 
       setTimeout(() => {
@@ -131,35 +180,23 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
   if (!activeCard && !gameOver) return <div className="p-10 text-center text-white">Loading Situations...</div>;
 
   return (
-    // FIX: Main Container is now FULL WIDTH (w-full) so background stretches everywhere
     <div className="min-h-screen w-full bg-background relative overflow-hidden font-sans">
 
-      {/* ========================================= */}
-      {/* 1. BACKGROUND DECORATION (Full Screen)    */}
-      {/* ========================================= */}
+      {/* ── BACKGROUND DECORATION ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
-        {/* Deep Atmospheric Glows */}
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] opacity-60" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-800/20 rounded-full blur-[120px] opacity-60" />
-
-        {/* Perspective Grid Floor */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20" />
-
-        {/* Floating Icons */}
         <FloatingElement className="absolute top-[10%] left-[5%] text-emerald-500/10" delay={0} duration={8}><TrendingUp className="w-16 h-16 rotate-[-12deg]" /></FloatingElement>
         <FloatingElement className="absolute top-[28%] left-[18%] text-emerald-300/10" delay={1} duration={9}><PieChart className="w-12 h-12" /></FloatingElement>
         <FloatingElement className="absolute bottom-[20%] left-[8%] text-emerald-400/10" delay={1.5} duration={7}><PiggyBank className="w-14 h-14 rotate-[12deg]" /></FloatingElement>
         <FloatingElement className="absolute top-[15%] right-[8%] text-gold/10" delay={2} duration={8}><Target className="w-12 h-12" /></FloatingElement>
         <FloatingElement className="absolute bottom-[25%] right-[10%] text-blue-400/10" delay={0.5} duration={7}><Wallet className="w-16 h-16 rotate-[-6deg]" /></FloatingElement>
-
         <RisingSymbol symbol={<DollarSign />} left="10%" delay={0} size={18} />
         <RisingSymbol symbol={<ArrowUp />} left="90%" delay={2} size={14} />
       </div>
 
-      {/* ========================================= */}
-      {/* 2. CONTENT AREA (Centered & Constrained)  */}
-      {/* ========================================= */}
-      {/* FIX: max-w-7xl is applied HERE, inside the full-width wrapper */}
+      {/* ── CONTENT ── */}
       <div className="relative z-10 flex flex-col h-full max-w-7xl mx-auto p-4 pb-24">
 
         <JourneyTrack
@@ -171,11 +208,10 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
         {/* HEADER */}
         <motion.div className="flex justify-between items-start mb-6 px-4 pt-2 relative">
           <div className="drop-shadow-2xl">
-            <PlayerCharacterComponent character={playerCharacter} size="sm" reaction={playerReaction} />
+            <PlayerCharacterComponent character={playerCharacter} reaction={playerReaction} />
           </div>
 
           <div className="mt-4 flex flex-col items-center z-10">
-            {/* Round Badge */}
             <motion.div
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -217,8 +253,6 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
         {/* CARD AREA */}
         {!gameOver && activeCard && (
           <div className="flex-1 flex flex-col items-center justify-start w-full">
-
-            {/* SCENARIO */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -230,7 +264,6 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
               </h2>
             </motion.div>
 
-            {/* CARDS GRID */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl perspective-1000">
               <AnimatePresence mode="wait">
                 {activeCard.options.map((choice, idx) => (
@@ -255,7 +288,7 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
         )}
       </div>
 
-      {/* GAME OVER MODAL */}
+      {/* GAME OVER */}
       <AnimatePresence>
         {gameOver && (
           <motion.div
@@ -280,7 +313,7 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
   );
 };
 
-// --- HELPER COMPONENTS ---
+// ── HELPER COMPONENTS ────────────────────────────────────────────────────────
 
 interface StatCardProps { icon: React.ReactNode; label: string; value: string | number; color: string; }
 const StatCard = ({ icon, label, value, color }: StatCardProps) => (
@@ -297,7 +330,7 @@ const FloatingElement = ({ children, className, delay, duration = 6 }: { childre
   <motion.div
     className={className}
     animate={{ y: [0, -20, 0], rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
-    transition={{ duration: duration, repeat: Infinity, ease: "easeInOut", delay: delay }}
+    transition={{ duration, repeat: Infinity, ease: "easeInOut", delay }}
   >
     {children}
   </motion.div>
@@ -308,7 +341,7 @@ const RisingSymbol = ({ symbol, left, delay, size }: { symbol: React.ReactNode, 
     className="absolute bottom-[-50px] text-emerald-500/20"
     style={{ left, fontSize: size }}
     animate={{ y: [-50, -800], opacity: [0, 0.5, 0], x: [0, Math.random() * 50 - 25] }}
-    transition={{ duration: 15, repeat: Infinity, ease: "linear", delay: delay }}
+    transition={{ duration: 15, repeat: Infinity, ease: "linear", delay }}
   >
     {symbol}
   </motion.div>
