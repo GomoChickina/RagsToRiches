@@ -11,35 +11,37 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 
-import io.github.cdimascio.dotenv.Dotenv;
+// ❌ REMOVE THIS: import io.github.cdimascio.dotenv.Dotenv;
 
 public class MongoDB {
     private static MongoDatabase database;
 
-    // 1. The Init Method (Call this ONCE in Main)
     public static void init(String connectionString) {
+        // ❌ REMOVE THIS: connectionString = dotenv.get("MONGO_URI");
+        // Just use the 'connectionString' that was passed into the method!
 
-        Dotenv dotenv = Dotenv.load();
-        connectionString = dotenv.get("MONGO_URI");
+        if (connectionString == null || connectionString.isEmpty()) {
+            throw new RuntimeException("MongoDB URI cannot be null or empty");
+        }
 
         if (database != null)
-            return; // Already initialized
+            return;
 
-        // Create the "Translator" for your Java Classes (User/Card)
         CodecRegistry pojoCodecRegistry = fromRegistries(
                 MongoClientSettings.getDefaultCodecRegistry(),
                 fromProviders(PojoCodecProvider.builder().automatic(true).build()));
 
         MongoClientSettings settings = MongoClientSettings.builder()
                 .applyConnectionString(new ConnectionString(connectionString))
-                .codecRegistry(pojoCodecRegistry) // <--- APPLY TRANSLATOR
+                .codecRegistry(pojoCodecRegistry)
                 .build();
 
         MongoClient mongoClient = MongoClients.create(settings);
-        database = mongoClient.getDatabase("RagsToRiches"); // Your DB Name
+        // Ensure this matches your docker-compose DB name if specified,
+        // but "RagsToRiches" is a safe standard.
+        database = mongoClient.getDatabase("RagsToRiches");
     }
 
-    // 2. The Getter (Call this whenever you need to save/load data)
     public static MongoDatabase getDatabase() {
         if (database == null) {
             throw new RuntimeException("❌ You must call MongoDB.init(uri) in Main.java first!");

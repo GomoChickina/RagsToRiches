@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bson.types.ObjectId; // <-- ADDED IMPORT
+
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
@@ -48,8 +50,15 @@ public class GameApi {
         return cardCollection.find().into(new ArrayList<>());
     }
 
+    // --- UPDATED: Safe ID Fetching ---
     public User getUser(String userId) {
-        return userCollection.find(Filters.eq("_id", userId)).first();
+        try {
+            // Try searching for a proper MongoDB ObjectId (Real accounts)
+            return userCollection.find(Filters.eq("_id", new ObjectId(userId))).first();
+        } catch (IllegalArgumentException e) {
+            // Fallback: If it's a manual string like "test_user", search as a raw string
+            return userCollection.find(Filters.eq("_id", userId)).first();
+        }
     }
 
     public List<User> getLeaderboard() {
@@ -68,9 +77,18 @@ public class GameApi {
         return newUser;
     }
 
+    // --- UPDATED: Safe ID Saving ---
     public User saveUser(User user) {
         user.calculateScore(); // Recalculate score before saving
-        userCollection.replaceOne(Filters.eq("_id", user.id), user);
+
+        try {
+            // Try updating the real account using ObjectId
+            userCollection.replaceOne(Filters.eq("_id", new ObjectId(user.id)), user);
+        } catch (IllegalArgumentException e) {
+            // Fallback for string-based test accounts
+            userCollection.replaceOne(Filters.eq("_id", user.id), user);
+        }
+
         return user;
     }
 

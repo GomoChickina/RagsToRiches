@@ -7,25 +7,24 @@ import org.bson.codecs.pojo.annotations.BsonId;
 
 public class User {
     @BsonId
-    public String id; // This maps to MongoDB's _id
+    public String id;
     public String name;
     public String email;
+    public String password; // BCrypt hashed — never sent to frontend
     public Appearance appearance;
     public Stats stats;
     public double overallScore;
-
-    // NEW: List of Item IDs the user owns (e.g., ["default_outfit", "gold_chain"])
     public List<String> inventory;
 
     public User() {
-        // Empty constructor required by MongoDB
     }
 
-    // Factory method to create a new default user
-    public static User createDefault(String id) {
+    public static User createDefault(String id, String name, String email, String hashedPassword) {
         User u = new User();
         u.id = id;
-        u.name = "Player " + id;
+        u.name = name;
+        u.email = email;
+        u.password = hashedPassword;
         u.appearance = new Appearance();
         u.inventory = new ArrayList<>();
         u.stats = new Stats();
@@ -37,22 +36,30 @@ public class User {
         return u;
     }
 
+    // Keep old factory for backwards compat (guest/test users)
+    public static User createDefault(String id) {
+        return createDefault(id, "Player " + id, null, null);
+    }
+
     public void calculateScore() {
         if (this.stats != null) {
-            this.overallScore = this.stats.money +
-                    (this.stats.financeKnowledge * 10) + // Weighting knowledge
-                    (this.stats.happiness * 5); // Weighting happiness
+            this.overallScore = this.stats.money
+                    + (this.stats.financeKnowledge * 10)
+                    + (this.stats.happiness * 5);
         }
     }
 
-    // --- NESTED CLASSES ---
+    // Strip password before sending to frontend
+    public User withoutPassword() {
+        this.password = null;
+        return this;
+    }
 
     public static class Appearance {
-        // Updated to match Frontend Component slots
-        public String outfit = "default"; // default, business, suit
-        public String hat = "none"; // none, cap, grad_cap
-        public String glasses = "none"; // none, shades, reading
-        public String accessory = "none"; // none, gold_chain, watch
+        public String outfit = "default";
+        public String hat = "none";
+        public String glasses = "none";
+        public String accessory = "none";
 
         public Appearance() {
         }

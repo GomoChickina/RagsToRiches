@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 // COMPONENTS
 import { HeroSection } from '@/components/game/HeroSection';
 import { GameBoard } from '@/components/game/GameBoard';
-import { CharacterShop } from '@/components/game/CharacterShop';
 import { Leaderboard } from '@/components/game/Leaderboard';
 import { Navigation } from '@/components/game/Navigation';
 import { TutorialSection } from '@/components/game/TutorialSection';
@@ -11,41 +10,52 @@ import { TutorialSection } from '@/components/game/TutorialSection';
 import { PlayerCharacter, BackendUser, SituationCard } from '@/types/game';
 import { api } from "@/hooks/Api";
 import { toast } from "sonner";
-import { AuthPanel, AuthState } from '@/components/auth/AuthPanel';
+import { AuthPanel } from '@/components/auth/AuthPanel'; // Make sure this path is correct!
+import { useAuth } from '@/components/auth/AuthContext'; // Make sure this path is correct!
 import { Loader2 } from 'lucide-react';
 
-// REMOVED 'cards' from this list
-type Page = 'home' | 'play' | 'learn' | 'shop' | 'leaderboard';
-
-const USER_ID = "test_user_1";
+type Page = 'home' | 'play' | 'learn' | 'leaderboard';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [loading, setLoading] = useState(true);
 
+  // Hook into your new global auth system
+  const { user: authUser } = useAuth();
+
   const [user, setUser] = useState<PlayerCharacter | null>(null);
   const [cards, setCards] = useState<SituationCard[]>([]);
 
-  const [auth, setAuth] = useState<AuthState>({
-    status: 'guest', userName: 'Guest', email: '',
-  });
-
   const refreshGameData = useCallback(async () => {
+    setLoading(true);
     try {
-      const [backendUser, backendCards] = await Promise.all([
-        api.getProfile(USER_ID),
-        api.getCards()
-      ]);
-
-      if (backendUser) setUser(backendUser as PlayerCharacter);
+      // 1. Always fetch the cards
+      const backendCards = await api.getCards();
       if (backendCards) setCards(backendCards);
+
+      // 2. Fetch real user or create temporary Guest
+      if (authUser) {
+        const backendUser = await api.getProfile(authUser.id);
+        if (backendUser) setUser(backendUser as PlayerCharacter);
+      } else {
+        // Guest Mode fallback
+        setUser({
+          id: "guest_" + Math.random().toString(36).substring(2, 9),
+          name: "Guest",
+          email: "guest@example.com",
+          appearance: { outfit: "default", hat: "none", glasses: "none", accessory: "none" },
+          inventory: ["default_outfit", "none_hat", "none_glasses", "none_accessory"],
+          stats: { money: 1000, financeKnowledge: 0, happiness: 100 },
+          overallScore: 0
+        } as PlayerCharacter);
+      }
     } catch (err) {
       console.error(err);
-      toast.error("Connection failed");
+      toast.error("Failed to load game data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
     refreshGameData();
@@ -53,47 +63,57 @@ const Index = () => {
 
   const handleGameEnd = async (score: number) => {
     if (!user) return;
+
     const newScore = (user.overallScore || 0) + score;
     const userToSave: BackendUser = {
       ...user,
       overallScore: newScore,
       stats: { ...user.stats, money: user.stats.money + score, financeKnowledge: user.stats.financeKnowledge + 10 }
     };
-    await api.saveProfile(userToSave);
-    toast.success("Progress Saved!");
+
+    if (authUser) {
+      try {
+        await api.saveProfile(userToSave);
+        toast.success("Progress Saved!");
+      } catch (err) {
+        toast.error("Failed to save progress to server.");
+      }
+    } else {
+      toast.success(`Guest game over! You earned $${score}. Sign in to save next time!`);
+    }
+
     refreshGameData();
     setCurrentPage('home');
   };
-
-  const handleLogin = (p: { email: string }) => { setAuth({ status: 'authenticated', userName: p.email, email: p.email }); return true; };
-  const handleSignup = (p: { name: string, email: string }) => { setAuth({ status: 'authenticated', userName: p.name, email: p.email }); return true; };
-  const handleLogout = () => { setAuth({ status: 'guest', userName: 'Guest', email: '' }); };
 
   const handleNavigate = (page: Page) => {
     setCurrentPage(page);
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-white"><Loader2 className="animate-spin" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-900 text-primary"><Loader2 className="w-12 h-12 animate-spin" /></div>;
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden font-sans pb-24">
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.05),transparent_60%)]" />
       </div>
 
-      <AuthPanel auth={auth} onLogin={handleLogin} onSignup={handleSignup} onLogout={handleLogout} />
+      {/* Render the fully self-contained AuthPanel we built earlier */}
+      <div className="relative z-50">
+        <AuthPanel />
+      </div>
 
       <AnimatePresence mode="wait">
         {/* HOME PAGE */}
         {currentPage === 'home' && user && (
-          <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10">
             <HeroSection onNavigate={handleNavigate} playerCharacter={user} />
           </motion.div>
         )}
 
         {/* GAME PAGE */}
         {currentPage === 'play' && user && (
-          <motion.div key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div key="play" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative z-10">
             <GameBoard playerCharacter={user} onGameEnd={handleGameEnd} cards={cards} />
           </motion.div>
         )}
@@ -106,17 +126,6 @@ const Index = () => {
         )}
 
         {/* SHOP PAGE */}
-        {currentPage === 'shop' && (
-          <motion.div key="shop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="z-50 relative">
-            <CharacterShop
-              userId={USER_ID}
-              onClose={() => {
-                setCurrentPage('home');
-                refreshGameData();
-              }}
-            />
-          </motion.div>
-        )}
 
         {/* LEARN PAGE */}
         {currentPage === 'learn' && (
