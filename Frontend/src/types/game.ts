@@ -58,11 +58,13 @@ export interface Effect {
 }
 
 export interface Choice {
+  impactDescription?: string;
   text: string;
   effect: Effect;
 }
 
 export interface SituationCard {
+  title: unknown;
   id: Key;
   _id: string; // MongoDB ID
   situationId: number;
