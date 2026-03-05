@@ -1,0 +1,10 @@
+# Ignore environment files
+.env
+.env.*
+
+# Ignore Docker-specific config if it contains secrets
+docker-compose.override.yml
+
+# Ignore Git history (prevents history leaks in images)
+.git
+.gitignore

@@ -16,8 +16,9 @@ services:
       - database
     environment:
       # We pass the DB URL here. Notice it says "database" instead of "localhost"!
-      - MONGO_URI=mongodb+srv://shitijaggarwal07_db_user:meenakshiamit2611@cluster1.jfc1hlj.mongodb.net/RagsToRiches?retryWrites=true&w=majority
-      - JWT_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
   # 3. React Frontend
   frontend:
     build: ./frontend # Make sure this points to your frontend folder

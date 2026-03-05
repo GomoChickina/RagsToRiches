@@ -132,7 +132,7 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
 
     // Setup the context so the user CAN click the button (or auto-ask) after the choice
     setLastChoiceContext({
-      situationTitle: activeCard.title,
+      situationTitle: activeCard.scenario,
       choiceText: choice.text,
       impact: choice.impactDescription || "Processed turn",
       quality,
