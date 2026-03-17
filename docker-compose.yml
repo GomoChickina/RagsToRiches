@@ -1,0 +1,31 @@
+services:
+  # 1. MongoDB Database (Skip this if you use MongoDB Atlas in the cloud!)
+  database:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # 2. Java Backend
+  backend:
+    build: ./Backend  # Make sure this points to your backend folder
+    ports:
+      - "7070:7070"   # Change if your Javalin uses a different port
+    depends_on:
+      - database
+    environment:
+      # We pass the DB URL here. Notice it says "database" instead of "localhost"!
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+  # 3. React Frontend
+  frontend:
+    build: ./frontend # Make sure this points to your frontend folder
+    ports:
+      - "5173:80"     # Maps your local port 5173 to Nginx's port 80
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:

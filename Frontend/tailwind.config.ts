@@ -1,105 +1,34 @@
-import type { Config } from "tailwindcss";
-import tailwindAnimate from "tailwindcss-animate";
-
+/** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: ["class"],
-  content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
-  prefix: "",
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
   theme: {
-    container: {
-      center: true,
-      padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
-    },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
-        },
-        // Game-specific colors
-        income: {
-          DEFAULT: "hsl(var(--income))",
-          glow: "hsl(var(--income-glow))",
-        },
-        expense: {
-          DEFAULT: "hsl(var(--expense))",
-          glow: "hsl(var(--expense-glow))",
-        },
-        savings: {
-          DEFAULT: "hsl(var(--savings))",
-          glow: "hsl(var(--savings-glow))",
-        },
-        investment: {
-          DEFAULT: "hsl(var(--investment))",
-          glow: "hsl(var(--investment-glow))",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        // 1. Background: Deep Forest (Keep this, it's good)
+        background: '#022c22', // Emerald 950
+        
+        // 2. Primary: BRIGHT Mint Green (High Contrast for Buttons)
+        primary: '#34d399',    // Emerald 400 (Much brighter than before)
+        'primary-hover': '#10b981', // Emerald 500
+        
+        // 3. Secondary: Glassy / Deep Green
+        secondary: '#064e3b',  // Emerald 900
+        card: '#065f46',       // Emerald 800
+        
+        // 4. Text
+        'text-main': '#ffffff', // Pure White for readability
+        'text-muted': '#a7f3d0', // Emerald 200 (Soft Green)
+        
+        // 5. Money Gold
+        gold: '#fbbf24', 
       },
       fontFamily: {
-        display: ['Cinzel', 'serif'],
-        sans: ['Inter', 'sans-serif'],
-      },
-      keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-      },
-      animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
+        sans: ['"Inter"', 'sans-serif'],
       },
     },
   },
-  plugins: [tailwindAnimate],
-} satisfies Config;
+  plugins: [],
+}

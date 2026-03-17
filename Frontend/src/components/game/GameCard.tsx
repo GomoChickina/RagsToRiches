@@ -1,58 +1,82 @@
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Choice } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { parseCash, parseSymbol } from '@/utils/gameLogic'; // Import your helpers
+import { parseCash, parseSymbol } from '@/utils/gameLogic';
+import { Sparkles } from 'lucide-react';
 
 interface GameCardProps {
   choice: Choice;
   onClick?: (choice: Choice) => void;
   disabled?: boolean;
   index?: number;
-  subtitle?: string;
 }
 
 type CardCategory = 'income' | 'expense' | 'savings' | 'investment';
 
-const categoryStyles: Record<CardCategory, { border: string; glow: string; bg: string; text: string }> = {
-  income: {
-    border: 'border-green-500',
-    glow: 'shadow-[0_0_20px_rgba(34,197,94,0.5)]',
-    bg: 'from-green-500/20 to-green-500/5',
-    text: 'text-green-600',
-  },
-  expense: {
-    border: 'border-red-500',
-    glow: 'shadow-[0_0_20px_rgba(239,68,68,0.5)]',
-    bg: 'from-red-500/20 to-red-500/5',
-    text: 'text-red-500',
+const categoryConfig: Record<
+  CardCategory,
+  {
+    border: string;
+    glow: string;
+    bg: string;
+    badge: string;
+    label: string;
+    glowOverlay: string;
+  }
+> = {
+  investment: {
+    border: 'border-amber-400',
+    glow: 'shadow-[0_0_36px_rgba(251,191,36,0.5)]',
+    bg: 'bg-[linear-gradient(155deg,#1c1100_0%,#3b2000_55%,#150d00_100%)]',
+    badge: 'bg-amber-400/15 border-amber-400/50 text-amber-200',
+    label: 'Investment',
+    glowOverlay: 'bg-[radial-gradient(ellipse_at_50%_0%,rgba(251,191,36,0.18),transparent_60%)]',
   },
   savings: {
-    border: 'border-blue-400',
-    glow: 'shadow-[0_0_20px_rgba(96,165,250,0.5)]',
-    bg: 'from-blue-400/20 to-blue-400/5',
-    text: 'text-blue-500',
+    border: 'border-cyan-400',
+    glow: 'shadow-[0_0_36px_rgba(34,211,238,0.5)]',
+    bg: 'bg-[linear-gradient(155deg,#001d22_0%,#003d47_55%,#001218_100%)]',
+    badge: 'bg-cyan-400/15 border-cyan-400/50 text-cyan-200',
+    label: 'Savings',
+    glowOverlay: 'bg-[radial-gradient(ellipse_at_50%_0%,rgba(34,211,238,0.15),transparent_60%)]',
   },
-  investment: {
-    border: 'border-purple-500',
-    glow: 'shadow-[0_0_20px_rgba(168,85,247,0.5)]',
-    bg: 'from-purple-500/20 to-purple-500/5',
-    text: 'text-purple-500',
+  income: {
+    border: 'border-lime-400',
+    glow: 'shadow-[0_0_36px_rgba(163,230,53,0.5)]',
+    bg: 'bg-[linear-gradient(155deg,#0d1f00_0%,#1e4200_55%,#091500_100%)]',
+    badge: 'bg-lime-400/15 border-lime-400/50 text-lime-200',
+    label: 'Income',
+    glowOverlay: 'bg-[radial-gradient(ellipse_at_50%_0%,rgba(163,230,53,0.14),transparent_60%)]',
+  },
+  expense: {
+    border: 'border-orange-400',
+    glow: 'shadow-[0_0_36px_rgba(251,146,60,0.5)]',
+    bg: 'bg-[linear-gradient(155deg,#1f0700_0%,#4a1500_55%,#160400_100%)]',
+    badge: 'bg-orange-400/15 border-orange-400/50 text-orange-200',
+    label: 'Expense',
+    glowOverlay: 'bg-[radial-gradient(ellipse_at_50%_0%,rgba(251,146,60,0.14),transparent_60%)]',
   },
 };
 
-export const GameCard = ({ choice, onClick, disabled, subtitle, index = 0 }: GameCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
+const rarityConfig = {
+  common: { label: '', color: '' },
+  rare: { label: '★ RARE', color: 'text-amber-400' },
+  epic: { label: '✦ EPIC', color: 'text-lime-400' },
+  legendary: { label: '✦ LEGENDARY', color: 'text-yellow-300' },
+};
 
-  // Helper to determine visuals based on stats
+export const GameCard = ({ choice, onClick, disabled, index = 0 }: GameCardProps) => {
+
+  const [flipped, setFlipped] = useState(false);
+
   const analyzeChoice = (c: Choice) => {
-    // 1. FIX: Parse strings to numbers before doing math
     const moneyVal = parseCash(c.effect.money);
     const financeVal = parseSymbol(c.effect.financeKnowledge);
 
     let category: CardCategory = 'savings';
     let icon = '🛡️';
-    let rarity = 'common';
+    let rarity: keyof typeof rarityConfig = 'common';
 
     if (moneyVal < 0) {
       category = 'expense';
@@ -65,9 +89,7 @@ export const GameCard = ({ choice, onClick, disabled, subtitle, index = 0 }: Gam
       icon = '🧠';
     }
 
-    // Calculate total impact for rarity
-    const totalImpact = Math.abs(moneyVal) + (financeVal * 50); // Weighted knowledge
-
+    const totalImpact = Math.abs(moneyVal) + financeVal * 50;
     if (totalImpact > 1000) rarity = 'legendary';
     else if (totalImpact > 500) rarity = 'epic';
     else if (totalImpact > 200) rarity = 'rare';
@@ -76,87 +98,164 @@ export const GameCard = ({ choice, onClick, disabled, subtitle, index = 0 }: Gam
   };
 
   const { category, icon, rarity } = analyzeChoice(choice);
-  const styles = categoryStyles[category];
+  const cfg = categoryConfig[category];
+  const rarityInfo = rarityConfig[rarity];
+
+  // Run a one-time flip animation shortly after mount
+  useEffect(() => {
+    const timer = setTimeout(() => setFlipped(true), 400 + index * 80);
+    return () => clearTimeout(timer);
+  }, [index]);
+
+  // Gold coin SVG used in the card front medallion
+  const CoinSVG = () => (
+    <svg viewBox="0 0 32 32" className="w-8 h-8" fill="none">
+      <circle cx="16" cy="16" r="10" fill="#071610" stroke="#ca8a04" strokeWidth="1.2" />
+      <circle cx="16" cy="16" r="7" fill="none" stroke="#78350f" strokeWidth="0.75" strokeDasharray="2 2" />
+      <text
+        x="16" y="21"
+        textAnchor="middle"
+        fontSize="14"
+        fontFamily="Georgia, serif"
+        fontWeight="bold"
+        fill="#fbbf24"
+      >
+        $
+      </text>
+    </svg>
+  );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50, rotateX: 45 }}
-      animate={{ opacity: 1, y: 0, rotateX: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1, type: 'spring', stiffness: 100 }}
-      className="perspective-1000"
+      initial={{ opacity: 0, y: 40, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.08, type: 'spring', stiffness: 200, damping: 20 }}
+      className={cn(
+        'h-[340px] w-full cursor-pointer',
+        '[perspective:1000px]',
+        disabled && 'opacity-40 pointer-events-none grayscale'
+      )}
+      onClick={() => !disabled && onClick?.(choice)}
     >
-      <motion.button // Changed to button for semantics
-        whileHover={{
-          scale: 1.05,
-          y: -15,
-          rotateY: 5,
-          transition: { duration: 0.2 }
-        }}
-        whileTap={{ scale: 0.95 }}
-        onHoverStart={() => setIsHovered(true)}
-        onHoverEnd={() => setIsHovered(false)}
-        onClick={() => !disabled && onClick?.(choice)}
-        disabled={disabled} // Native disable
+      {/* Flip wrapper */}
+      <div
         className={cn(
-          'relative w-44 h-64 md:w-48 md:h-80 rounded-xl cursor-pointer preserve-3d transition-all duration-300 border-2 bg-card text-left flex flex-col',
-          styles.border,
-          isHovered && styles.glow,
-          disabled && 'opacity-50 cursor-not-allowed grayscale'
+          'relative h-full w-full rounded-2xl transition-transform duration-700',
+          '[transform-style:preserve-3d]',
+          flipped && '[transform:rotateY(180deg)]',
+          cfg.glow
         )}
       >
-        {/* Background Gradient */}
-        <div className={cn(
-          'absolute inset-0 rounded-xl bg-gradient-to-b',
-          styles.bg
-        )}>
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-white/10 to-transparent opacity-50" />
+
+        {/* ═══════════════════════════════════════════
+            FRONT — Playing Card Back Pattern
+            Deep forest green + gold lattice & coin
+        ═══════════════════════════════════════════ */}
+        <div
+          className={cn(
+            'absolute inset-0 rounded-2xl overflow-hidden',
+            '[backface-visibility:hidden]',
+            'bg-[#0c2016] border-2 border-amber-600'
+          )}
+        >
+          {/* Decorative inner border rings */}
+          <div className="absolute inset-[6px] rounded-xl border border-amber-400/30 pointer-events-none z-10" />
+          <div className="absolute inset-[10px] rounded-xl border border-amber-400/12 pointer-events-none z-10" />
+
+          {/* Gold diamond lattice */}
+          <div
+            className="absolute inset-0 opacity-[0.08]"
+            style={{
+              backgroundImage: `
+                repeating-linear-gradient(45deg, #fbbf24 0, #fbbf24 1px, transparent 1px, transparent 14px),
+                repeating-linear-gradient(-45deg, #fbbf24 0, #fbbf24 1px, transparent 1px, transparent 14px)
+              `,
+            }}
+          />
+
+          {/* Radial vignette */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.03)_0%,rgba(0,0,0,0.55)_100%)]" />
+
+          {/* Corner ornaments */}
+          {(['top-[10px] left-[10px]', 'top-[10px] right-[10px] rotate-90', 'bottom-[10px] left-[10px] -rotate-90', 'bottom-[10px] right-[10px] rotate-180'] as const).map(
+            (pos, i) => (
+              <div key={i} className={`absolute ${pos} w-[18px] h-[18px] z-10`}>
+                <svg viewBox="0 0 20 20" fill="none" className="w-full h-full">
+                  <path d="M3 3 L3 9 M3 3 L9 3" stroke="#ca8a04" strokeWidth="1.5" strokeLinecap="round" />
+                  <circle cx="3" cy="3" r="1.5" fill="#ca8a04" />
+                </svg>
+              </div>
+            )
+          )}
+
+          {/* Center medallion */}
+          <div className="absolute inset-0 flex items-center justify-center z-[2]">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-[88px] h-[88px] rounded-full border border-amber-400/28" />
+              <div className="absolute w-[72px] h-[72px] rounded-full border border-amber-400/12" />
+              <div className="w-14 h-14 rounded-full bg-[#071610] border-[1.5px] border-amber-600 flex items-center justify-center shadow-[0_0_18px_rgba(251,191,36,0.25),inset_0_2px_8px_rgba(0,0,0,0.6)]">
+                <CoinSVG />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Content Container */}
-        <div className="relative h-full flex flex-col p-4 w-full z-10">
+        {/* ═══════════════════════════════════════════
+            BACK — Card Content (revealed on hover)
+        ═══════════════════════════════════════════ */}
+        <div
+          className={cn(
+            'absolute inset-0 rounded-2xl border-2 overflow-hidden flex flex-col',
+            '[backface-visibility:hidden]',
+            '[transform:rotateY(180deg)]',
+            cfg.border,
+            cfg.bg
+          )}
+        >
+          {/* Radial glow overlay at top */}
+          <div className={cn('absolute inset-0', cfg.glowOverlay)} />
 
-          {/* Top Badge */}
-          <div className="flex justify-between items-start mb-2">
-            <span className={cn(
-              'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/20 text-foreground',
-            )}>
-              {category}
-            </span>
-            {rarity !== 'common' && <span className="text-xs animate-pulse">⭐</span>}
-          </div>
+          {/* Top shine line */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
 
-          {/* Icon Area */}
-          <div className="flex-none flex items-center justify-center py-6">
-            <motion.span
-              className="text-5xl md:text-6xl drop-shadow-md select-none"
-              animate={isHovered ? { scale: 1.2, rotate: [0, -10, 10, 0] } : {}}
-              transition={{ duration: 0.5 }}
-            >
-              {icon}
-            </motion.span>
-          </div>
+          <div className="relative z-10 flex flex-col h-full p-4">
 
-          {/* Text Content */}
-          <div className="flex-1 flex flex-col justify-end text-center space-y-3 mt-auto">
-            <h3 className="font-display text-sm leading-snug font-bold text-foreground break-words line-clamp-3">
-              {choice.text}
-            </h3>
-
-            {/* 2. FIX: Display the subtitle (Clean Summary) clearly */}
-            {subtitle ? (
-              <span className={cn(
-                "text-xs font-bold px-2 py-1.5 rounded bg-background/80 backdrop-blur-sm border border-border shadow-sm",
-                styles.text // Colors the text based on category (Green for income, Red for expense)
-              )}>
-                {subtitle}
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <span
+                className={cn(
+                  'text-[8px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full border backdrop-blur-sm',
+                  cfg.badge
+                )}
+              >
+                {cfg.label}
               </span>
-            ) : (
-              // Fallback skeleton if subtitle is missing
-              <div className="h-6 w-full bg-white/10 rounded animate-pulse" />
-            )}
+              {rarity !== 'common' && (
+                <div className="flex items-center gap-1">
+                  <span className={cn('text-[8px] font-bold uppercase tracking-wider animate-pulse', rarityInfo.color)}>
+                    {rarityInfo.label}
+                  </span>
+                  <Sparkles className="w-3 h-3 text-yellow-400 animate-pulse" />
+                </div>
+              )}
+            </div>
+
+            {/* Icon */}
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-[56px] leading-none filter drop-shadow-2xl">{icon}</span>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-white/15 text-center">
+              <p className="text-white/90 font-semibold text-xs leading-snug tracking-wide">
+                {choice.text}
+              </p>
+            </div>
+
           </div>
         </div>
-      </motion.button>
+
+      </div>
     </motion.div>
   );
 };

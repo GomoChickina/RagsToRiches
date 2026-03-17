@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { Home, Gamepad2, BookOpen, Layers, ShoppingBag } from 'lucide-react';
+import { Home, Gamepad2, BookOpen, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
-type Page = 'home' | 'play' | 'learn' | 'cards' | 'shop';
+
+export type Page = 'home' | 'play' | 'learn' | 'shop';
 
 interface NavigationProps {
   currentPage: Page;
@@ -11,50 +12,35 @@ interface NavigationProps {
 const navItems = [
   { id: 'home' as Page, label: 'Home', icon: Home },
   { id: 'play' as Page, label: 'Play', icon: Gamepad2 },
-  { id: 'shop' as Page, label: 'Shop', icon: ShoppingBag },
   { id: 'learn' as Page, label: 'Learn', icon: BookOpen },
-  { id: 'cards' as Page, label: 'Cards', icon: Layers },
+  { id: 'shop' as Page, label: 'Shop', icon: ShoppingBag },
 ];
 
 export const Navigation = ({ currentPage, onNavigate }: NavigationProps) => {
   return (
-    <motion.nav
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ delay: 0.5 }}
-      className="fixed bottom-6 inset-x-0 z-40 flex justify-center px-4"
-    >
-      <div className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-2xl bg-card/80 backdrop-blur-lg border border-border shadow-2xl w-fit max-w-[96vw]">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.id;
+    // GLASS CONTAINER: Dark semi-transparent bg + Blur + White Border
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-xl border border-white/10 text-white rounded-full px-6 py-2 shadow-2xl z-50 flex items-center gap-1">
+      {navItems.map((item) => {
+        const isActive = currentPage === item.id;
+        return (
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id as Page)}
+            className={cn(
+              "relative flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300",
+              // Active: Bright Green Icon
+              isActive ? "text-primary -translate-y-1" : "text-white/40 hover:text-white hover:bg-white/5"
+            )}
+          >
+            <item.icon className={cn("w-6 h-6", isActive && "fill-current drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]")} />
 
-          return (
-            <motion.button
-              key={item.id}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onNavigate(item.id)}
-              className={cn(
-                'relative flex flex-col items-center gap-0.5 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all',
-                isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="activeTab"
-                  className="absolute inset-0 bg-primary/10 rounded-xl"
-                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                />
-              )}
-              <Icon className="w-4 h-4 sm:w-5 sm:h-5 relative z-10" />
-              <span className="text-[10px] sm:text-xs font-medium relative z-10">{item.label}</span>
-            </motion.button>
-          );
-        })}
-      </div>
-    </motion.nav>
+            {/* Active Dot Indicator */}
+            {isActive && (
+              <span className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full animate-pulse" />
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 };

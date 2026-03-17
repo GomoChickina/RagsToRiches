@@ -1,178 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 222 47% 8%;
-    --foreground: 45 100% 96%;
-
-    --card: 222 47% 12%;
-    --card-foreground: 45 100% 96%;
-
-    --popover: 222 47% 10%;
-    --popover-foreground: 45 100% 96%;
-
-    --primary: 45 93% 58%;
-    --primary-foreground: 222 47% 8%;
-
-    --secondary: 222 30% 18%;
-    --secondary-foreground: 45 100% 96%;
-
-    --muted: 222 30% 15%;
-    --muted-foreground: 220 15% 60%;
-
-    --accent: 45 93% 58%;
-    --accent-foreground: 222 47% 8%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 45 100% 96%;
-
-    --border: 222 30% 20%;
-    --input: 222 30% 20%;
-    --ring: 45 93% 58%;
-
-    --radius: 0.75rem;
-
-    /* Game-specific colors */
-    --income: 142 76% 45%;
-    --income-glow: 142 76% 55%;
-    --expense: 0 72% 51%;
-    --expense-glow: 0 72% 61%;
-    --savings: 217 91% 60%;
-    --savings-glow: 217 91% 70%;
-    --investment: 45 93% 58%;
-    --investment-glow: 45 93% 68%;
-
-    /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(45 93% 58%), hsl(35 100% 50%), hsl(45 93% 68%));
-    --gradient-dark: linear-gradient(180deg, hsl(222 47% 12%), hsl(222 47% 6%));
-    --gradient-card-shine: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
-
-    /* Shadows */
-    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --shadow-card-hover: 0 16px 48px rgba(0, 0, 0, 0.6);
-    --shadow-glow-gold: 0 0 30px hsla(45, 93%, 58%, 0.4);
-    --shadow-glow-income: 0 0 30px hsla(142, 76%, 45%, 0.5);
-    --shadow-glow-expense: 0 0 30px hsla(0, 72%, 51%, 0.5);
-    --shadow-glow-savings: 0 0 30px hsla(217, 91%, 60%, 0.5);
-    --shadow-glow-investment: 0 0 30px hsla(45, 93%, 58%, 0.5);
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
+  /* 1. FORCE DARK GREEN THEME GLOBALLY */
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
-    min-height: 100vh;
+    @apply bg-background text-text-main font-sans overflow-x-hidden;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cinzel', serif;
+  /* 2. CUSTOM SCROLLBAR (Optional: Makes scrollbar green too) */
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded-full;
   }
 
-  #root {
-    min-height: 100vh;
-    width: 100%;
+  ::-webkit-scrollbar {
+    width: 8px;
   }
-}
-
-@layer utilities {
-  .font-display {
-    font-family: 'Cinzel', serif;
+  ::-webkit-scrollbar-track {
+    @apply bg-background; /* Blends with page background */
   }
-
-  .text-gradient-gold {
-    background: var(--gradient-gold);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .card-glow-income {
-    box-shadow: var(--shadow-glow-income);
-  }
-
-  .card-glow-expense {
-    box-shadow: var(--shadow-glow-expense);
-  }
-
-  .card-glow-savings {
-    box-shadow: var(--shadow-glow-savings);
-  }
-
-  .card-glow-investment {
-    box-shadow: var(--shadow-glow-investment);
-  }
-
-  .bg-card-shine {
-    background: var(--gradient-card-shine);
-  }
-}
-
-/* Card animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes card-draw {
-  0% { transform: translateY(100px) rotateX(45deg) scale(0.8); opacity: 0; }
-  100% { transform: translateY(0) rotateX(0) scale(1); opacity: 1; }
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.animate-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-.animate-card-draw {
-  animation: card-draw 0.5s ease-out forwards;
-}
-
-/* Perspective for 3D effects */
-.perspective-1000 {
-  perspective: 1000px;
-}
-
-.preserve-3d {
-  transform-style: preserve-3d;
-}
-
-.backface-hidden {
-  backface-visibility: hidden;
 }

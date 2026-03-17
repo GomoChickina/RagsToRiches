@@ -29,7 +29,6 @@ public class RagsToRichesCalculator implements StatsCalculator {
         stats.happiness += hapMult;
         stats.financeKnowledge += pflMult;
 
-        System.out.println("   ✅ Updated: Money=" + stats.money + ", Hap=" + stats.happiness);
     }
 
     // --- Helpers (Same as before) ---

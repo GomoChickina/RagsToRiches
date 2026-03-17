@@ -1,122 +1,42 @@
-package ragstoriches;
-
-import io.github.cdimascio.dotenv.Dotenv;
-import io.javalin.Javalin;
-import io.javalin.apibuilder.ApiBuilder;
-import ragstoriches.Api.GameApi;
-import ragstoriches.database.MongoDB;
-import ragstoriches.logic.RagsToRichesCalculator;
-
 public class Main {
     public static void main(String[] args) {
+        // 1. Config & Environment
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        String mongoUri = getEnv(dotenv, "MONGO_URI");
+        String jwtSecret = getEnv(dotenv, "JWT_SECRET");
+        String geminiKey = getEnv(dotenv, "GEMINI_API_KEY");
 
-        // 1. Load Config & DB
-        Dotenv dotenv = Dotenv.load();
-        MongoDB.init(dotenv.get("MONGO_URI"));
+        // RENDER FIX: Read the "PORT" environment variable assigned by Render
+        // Default to 7070 for your local development
+        int port = Integer.parseInt(getEnv(dotenv, "PORT") != null ? getEnv(dotenv, "PORT") : "7070");
 
-        // 2. Initialize Game Logic
+        if (mongoUri == null) {
+            System.err.println("❌ ERROR: MONGO_URI is not set!");
+            System.exit(1);
+        }
+
+        // 2. Initializations
+        MongoDB.init(mongoUri);
+        AuthApi auth = new AuthApi(jwtSecret != null ? jwtSecret : "fallback-secret");
         GameApi game = new GameApi(new RagsToRichesCalculator());
 
-        // 3. Start Server & Define Routes
+        // 3. Start Server & Delegate Routes
         Javalin app = Javalin.create(config -> {
-
-            // A. Enable CORS
             config.bundledPlugins.enableCors(cors -> {
-                cors.addRule(it -> it.anyHost());
+                // SECURITY: Replace anyHost() with your actual Netlify URL
+                cors.addRule(it -> it.allowHost("https://remarkable-hotteok-9a5dc2.netlify.app"));
             });
 
-            // B. Define Routes (Javalin 6 Style)
-            config.router.apiBuilder(() -> {
-                ApiBuilder.path("api", () -> {
+            new AppRouter(auth, game, geminiKey).setupRoutes(config);
 
-                    // 1. GET ALL CARDS
-                    ApiBuilder.get("cards", ctx -> {
-                        ctx.json(game.getAllCards());
-                    });
-
-                    // 2. GET USER PROFILE
-                    ApiBuilder.get("profile/{userId}", ctx -> {
-                        String userId = ctx.pathParam("userId");
-                        User user = game.getUser(userId);
-                        if (user == null) {
-                            System.out.println("Creating new user: " + userId);
-                            user = game.createUser(userId);
-                        }
-                        ctx.json(user);
-                    });
-
-                    // 3. SAVE USER PROFILE
-                    ApiBuilder.post("profile/save", ctx -> {
-                        User incomingUser = ctx.bodyAsClass(User.class);
-                        User savedUser = game.saveUser(incomingUser);
-                        ctx.json(savedUser);
-                    });
-
-                    // 4. GET LEADERBOARD
-                    ApiBuilder.get("leaderboard", ctx -> {
-                        ctx.json(game.getLeaderboard());
-                    });
-
-                    // 5. MAKE A CHOICE
-                    ApiBuilder.post("choose", ctx -> {
-                        ChoiceRequest request = ctx.bodyAsClass(ChoiceRequest.class);
-                        User updatedUser = game.processChoice(
-                                request.userId,
-                                request.situationId,
-                                request.choiceIndex);
-                        ctx.json(updatedUser);
-                    });
-
-                    ApiBuilder.get("shop/catalog", ctx -> {
-                        ctx.json(GameApi.ITEM_CATALOG);
-                    });
-
-                    // 7. SHOP: BUY ITEM
-                    ApiBuilder.post("shop/buy", ctx -> {
-                        ShopRequest req = ctx.bodyAsClass(ShopRequest.class);
-                        try {
-                            User u = game.buyItem(req.userId, req.itemId);
-                            ctx.json(u);
-                        } catch (RuntimeException e) {
-                            ctx.status(400).result(e.getMessage());
-                        }
-                    });
-
-                    // 8. SHOP: EQUIP ITEM
-                    ApiBuilder.post("shop/equip", ctx -> {
-                        ShopRequest req = ctx.bodyAsClass(ShopRequest.class);
-                        try {
-                            User u = game.equipItem(req.userId, req.itemId);
-                            ctx.json(u);
-                        } catch (RuntimeException e) {
-                            ctx.status(400).result(e.getMessage());
-                        }
-                    });
-                });
-            });
-
-        }).start(8080); // Start the server
+        }).start("0.0.0.0", port); // Use the dynamic port variable here
 
         Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
-
-        System.out.println("🚀 Backend is LISTENING on http://localhost:8080/api/");
+        System.out.println("🚀 Backend is LISTENING on port " + port);
     }
 
-    // --- HELPER CLASS ---
-    public static class ChoiceRequest {
-        public String userId;
-        public int situationId;
-        public int choiceIndex;
-
-        public ChoiceRequest() {
-        }
-    }
-
-    public static class ShopRequest {
-        public String userId;
-        public String itemId;
-
-        public ShopRequest() {
-        }
+    private static String getEnv(Dotenv dotenv, String key) {
+        String val = dotenv.get(key);
+        return (val != null) ? val : System.getenv(key);
     }
 }
