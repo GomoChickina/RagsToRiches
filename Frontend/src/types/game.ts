@@ -1,6 +1,6 @@
 // src/types/game.ts
 
-export const API_URL = "http://localhost:8080/api";
+export const API_URL = "https://ragstoriches-sqlz.onrender.com/";
 
 // ==========================================
 // 1. NEW BACKEND INTEGRATION TYPES
