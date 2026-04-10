@@ -48,27 +48,32 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Logic Restored: Fetching catalog and profile based on login status
+        setLoading(true);
+        // 1. Fetch catalog independently so the shop ALWAYS has items
+        const catalogData = await api.getShopCatalog();
+        setCatalog(catalogData || []);
+
+        // 2. Try to fetch the user profile separately
         if (isLoggedIn && userId) {
-          const [userData, catalogData] = await Promise.all([
-            api.getProfile(userId),
-            api.getShopCatalog()
-          ]);
-          if (userData) {
-            if (!userData.inventory) userData.inventory = [];
-            const pc = userData as PlayerCharacter;
-            setUser(pc);
-            setPreviewUser(pc);
+          try {
+            const userData = await api.getProfile(userId);
+            if (userData) {
+              if (!userData.inventory) userData.inventory = [];
+              const pc = userData as PlayerCharacter;
+              setUser(pc);
+              setPreviewUser(pc);
+            }
+          } catch (profileErr) {
+            console.warn("Could not load user profile, defaulting to guest view", profileErr);
+            setUser(null);
+            setPreviewUser(DEFAULT_GUEST_CHARACTER);
           }
-          setCatalog(catalogData);
         } else {
-          const catalogData = await api.getShopCatalog();
-          setCatalog(catalogData);
           setUser(null);
           setPreviewUser(DEFAULT_GUEST_CHARACTER);
         }
       } catch (err) {
-        toast.error("Failed to load shop");
+        toast.error("Failed to load shop catalog");
       } finally {
         setLoading(false);
       }
@@ -144,7 +149,7 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         {/* Top/Left: Preview - Optimized for Mobile Viewport */}
         <div className="w-full lg:w-1/3 lg:min-w-[300px] border-b lg:border-b-0 lg:border-r border-emerald-500/20 bg-gradient-to-b from-emerald-950 to-slate-950 flex flex-col items-center justify-center p-4 py-8 lg:p-6 lg:py-6 shrink-0">
-          <div className="w-32 h-40 sm:w-48 sm:h-60 mb-4 transition-all">
+          <div className="w-48 h-56 mb-4 transition-all flex items-center justify-center scale-75 sm:scale-100 origin-center">
             <PlayerCharacterComponent character={previewUser} size="lg" />
           </div>
           <div className="text-center text-emerald-100/60 text-[10px] sm:text-sm max-w-[200px]">Customize your avatar with your smart earnings.</div>

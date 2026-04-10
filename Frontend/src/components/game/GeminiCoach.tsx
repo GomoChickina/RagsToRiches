@@ -17,6 +17,7 @@ interface GeminiCoachProps {
 export const GeminiCoach: React.FC<GeminiCoachProps> = ({ context, onAsked, autoExplain }) => {
     const [explanation, setExplanation] = useState<string | null>(null);
     const [isExplaining, setIsExplaining] = useState(false);
+    const [hasAutoRequestedForContext, setHasAutoRequestedForContext] = useState(false);
 
     const requestExplanation = async () => {
         if (!context) return;
@@ -36,7 +37,7 @@ export const GeminiCoach: React.FC<GeminiCoachProps> = ({ context, onAsked, auto
 
             const data = await response.json();
             setExplanation(data.explanation);
-        } catch (err) {
+        } catch {
             toast.error("The Financial Coach is busy right now.");
         } finally {
             setIsExplaining(false);
@@ -46,19 +47,21 @@ export const GeminiCoach: React.FC<GeminiCoachProps> = ({ context, onAsked, auto
     // Reset explanation if the context changes (new card)
     React.useEffect(() => {
         setExplanation(null);
+        setHasAutoRequestedForContext(false);
     }, [context]);
 
     // Automatically trigger explanation on worst choices when requested
     React.useEffect(() => {
-        if (autoExplain && context && !explanation && !isExplaining) {
+        if (autoExplain && context && !explanation && !isExplaining && !hasAutoRequestedForContext) {
+            setHasAutoRequestedForContext(true);
             void requestExplanation();
         }
-    }, [autoExplain, context, explanation, isExplaining]);
+    }, [autoExplain, context, explanation, isExplaining, hasAutoRequestedForContext]);
 
     if (!context) return null;
 
     return (
-        <div className="flex flex-col items-center w-full max-w-md mx-auto mt-6 px-4">
+        <div className="flex flex-col items-center w-full max-w-md mx-auto mt-3 sm:mt-6 px-2 sm:px-4">
             <AnimatePresence mode="wait">
                 {!explanation ? (
                     <motion.button
@@ -68,7 +71,7 @@ export const GeminiCoach: React.FC<GeminiCoachProps> = ({ context, onAsked, auto
                         exit={{ opacity: 0, scale: 0.9 }}
                         onClick={requestExplanation}
                         disabled={isExplaining}
-                        className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-3 px-6 rounded-full shadow-lg transition-all active:scale-95 disabled:opacity-70"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-3 px-4 sm:px-6 rounded-full shadow-lg transition-all active:scale-95 disabled:opacity-70"
                     >
                         {isExplaining ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -84,7 +87,7 @@ export const GeminiCoach: React.FC<GeminiCoachProps> = ({ context, onAsked, auto
                         key="explanation-box"
                         initial={{ opacity: 0, scale: 0.9, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        className="bg-slate-800/80 backdrop-blur-sm border-2 border-amber-500/30 p-5 rounded-2xl shadow-xl relative overflow-hidden"
+                        className="w-full bg-slate-800/80 backdrop-blur-sm border-2 border-amber-500/30 p-4 sm:p-5 rounded-2xl shadow-xl relative overflow-hidden"
                     >
                         {/* Decorative accent */}
                         <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />

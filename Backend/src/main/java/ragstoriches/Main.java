@@ -30,17 +30,30 @@ public class Main {
         AuthApi auth = new AuthApi(jwtSecret != null ? jwtSecret : "fallback-secret");
         GameApi game = new GameApi(new RagsToRichesCalculator());
 
-        // 3. Start Server & Delegate Routes
+        // 3. Initialize Server & Delegate Routes (No .start() here yet)
         Javalin app = Javalin.create(config -> {
             config.bundledPlugins.enableCors(cors -> {
-                // SECURITY: Replace anyHost() with your actual Netlify URL
-                cors.addRule(it -> it.allowHost("https://remarkable-hotteok-9a5dc2.netlify.app"));
+                // Simplified CORS rule that handles everything
+                cors.addRule(it -> {
+                    it.reflectClientOrigin = true; 
+                    it.allowCredentials = true;
+                });
             });
 
             new AppRouter(auth, game, geminiKey).setupRoutes(config);
+        });
 
-        }).start("0.0.0.0", port); // Use the dynamic port variable here
+        // --- THE JAVALIN X-RAY (Exception Handler) ---
+        app.exception(Exception.class, (e, ctx) -> {
+            System.err.println("🔥 JAVALIN HIDDEN EXCEPTION ON ROUTE: " + ctx.path());
+            e.printStackTrace();
+            ctx.status(500).result("Server Error: " + e.getMessage());
+        });
 
+        // 4. Start the server explicitly
+        app.start("0.0.0.0", port);
+
+        // 5. Add Shutdown Hook
         Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
         System.out.println("🚀 Backend is LISTENING on port " + port);
     }

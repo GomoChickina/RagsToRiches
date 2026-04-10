@@ -15,6 +15,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/hooks/Api";
 import { useAuth } from "./AuthContext";
 
+const toSafeAuthMessage = (err: unknown, fallback: string) => {
+  const message = err instanceof Error ? err.message : fallback;
+  // Prevent dumping raw JSON/server payload into the UI.
+  if (!message || message.trim().length === 0) return fallback;
+  if (message.trim().startsWith("{") || message.length > 180) return fallback;
+  return message;
+};
+
 export const AuthPanel = () => {
   const { user, login, logout } = useAuth();
 
@@ -46,7 +54,7 @@ export const AuthPanel = () => {
       setLoginEmail("");
       setLoginPassword("");
     } catch (err: unknown) {
-      setLoginError(err instanceof Error ? err.message : "Login failed.");
+      setLoginError(toSafeAuthMessage(err, "Could not sign in. Please check your email/password and try again."));
     } finally {
       setLoginLoading(false);
     }
@@ -75,7 +83,7 @@ export const AuthPanel = () => {
       setSignupEmail("");
       setSignupPassword("");
     } catch (err: unknown) {
-      setSignupError(err instanceof Error ? err.message : "Sign up failed.");
+      setSignupError(toSafeAuthMessage(err, "Could not create account. Please try again."));
     } finally {
       setSignupLoading(false);
     }

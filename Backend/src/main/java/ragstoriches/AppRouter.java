@@ -46,7 +46,7 @@ public class AppRouter {
                 });
 
                 // GAME & AI ROUTES
-                ApiBuilder.get("cards", ctx -> ctx.json(game.getAllCards()));
+                ApiBuilder.get("cards", ctx -> ctx.status(200).json(game.getAllCards()));
 
                 // Profile (simple user CRUD without auth middleware for now)
                 ApiBuilder.get("profile/{userId}", ctx -> {
@@ -72,17 +72,18 @@ public class AppRouter {
 
                 // Shop routes
                 ApiBuilder.get("shop/catalog", ctx -> {
-                    List<Map<String, Object>> items = new ArrayList<>();
-                    for (GameWardrobe item : GameApi.ITEM_CATALOG.values()) {
-                        items.add(Map.of(
-                                "id", item.id,
-                                "name", item.name,
-                                "type", item.type,
-                                "price", item.price,
-                                "knowledgeReq", item.knowledgeReq,
-                                "description", item.description != null ? item.description : ""));
-                    }
-                    ctx.json(items);
+                List<Map<String, Object>> items = new ArrayList<>();
+                for (GameWardrobe item : GameApi.ITEM_CATALOG.values()) {
+                items.add(Map.of(
+                    "id", item.id,
+                    "name", item.name,
+                    "type", item.type,
+                    "price", item.price,
+                    "knowledgeReq", item.knowledgeReq,
+                    "description", item.description != null ? item.description : ""));
+                }
+            // Explicitly command Javalin to set a 200 OK status
+                ctx.status(200).json(items);
                 });
 
                 ApiBuilder.post("shop/buy", ctx -> {
@@ -98,15 +99,27 @@ public class AppRouter {
                 });
 
                 ApiBuilder.post("choose", ctx -> {
-                    ChoiceRequest request = ctx.bodyAsClass(ChoiceRequest.class);
-                    // Process the choice using your game logic
-                    User updatedUser = game.processChoice(
-                            request.userId,
-                            request.situationId,
-                            request.choiceIndex);
+                    try {
+                        Map<String, Object> body = ctx.bodyAsClass(Map.class);
 
-                    // Return the user without the password for security
-                    ctx.json(updatedUser.withoutPassword());
+                        String userId = body.get("userId") != null ? String.valueOf(body.get("userId")) : null;
+                        Object situationIdRaw = body.get("situationId");
+                        Object choiceIndexRaw = body.get("choiceIndex");
+
+                        if (userId == null || situationIdRaw == null || choiceIndexRaw == null) {
+                            ctx.status(400).result("Missing fields: userId, situationId, choiceIndex are required");
+                            return;
+                        }
+
+                        int situationId = parseIntSafely(situationIdRaw);
+                        int choiceIndex = parseIntSafely(choiceIndexRaw);
+
+                        User updatedUser = game.processChoice(userId, situationId, choiceIndex);
+                        ctx.json(updatedUser.withoutPassword());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        ctx.status(400).result("Invalid choose payload: " + e.getMessage());
+                    }
                 });
 
                 ApiBuilder.post("explain", ctx -> {
@@ -147,5 +160,16 @@ public class AppRouter {
     public static class ShopRequest {
         public String userId;
         public String itemId;
+    }
+
+    private static int parseIntSafely(Object value) {
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        String text = String.valueOf(value).trim();
+        if (text.endsWith(".0")) {
+            text = text.substring(0, text.length() - 2);
+        }
+        return Integer.parseInt(text);
     }
 }

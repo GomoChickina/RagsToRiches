@@ -67,7 +67,6 @@ const rarityConfig = {
 };
 
 export const GameCard = ({ choice, onClick, disabled, index = 0 }: GameCardProps) => {
-
   const [flipped, setFlipped] = useState(false);
 
   const analyzeChoice = (c: Choice) => {
@@ -133,6 +132,7 @@ export const GameCard = ({ choice, onClick, disabled, index = 0 }: GameCardProps
         cfg.glow
       )}
       >
+        {/* --- FRONT OF CARD (Back Cover) --- */}
         <div className={cn(
           'absolute inset-0 rounded-2xl overflow-hidden',
           '[backface-visibility:hidden]',
@@ -144,18 +144,19 @@ export const GameCard = ({ choice, onClick, disabled, index = 0 }: GameCardProps
           <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: `repeating-linear-gradient(45deg, #fbbf24 0, #fbbf24 1px, transparent 1px, transparent 14px), repeating-linear-gradient(-45deg, #fbbf24 0, #fbbf24 1px, transparent 1px, transparent 14px)` }} />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(251,191,36,0.03)_0%,rgba(0,0,0,0.55)_100%)]" />
 
-          {/* Center medallion scaling */}
+          {/* Center medallion */}
           <div className="absolute inset-0 flex items-center justify-center z-[2]">
-            <div className="relative flex items-center justify-center scale-90 sm:scale-100">
+            <div className="relative flex items-center justify-center scale-75 sm:scale-100">
               <div className="absolute w-[88px] h-[88px] rounded-full border border-amber-400/28" />
               <div className="absolute w-[72px] h-[72px] rounded-full border border-amber-400/12" />
-              <div className="w-14 h-14 rounded-full bg-[#071610] border-[1.5px] border-amber-600 flex items-center justify-center shadow-[0_0_18px_rgba(251,191,36,0.25),inset_0_2px_8px_rgba(0,0,0,0.6)]">
+              <div className="w-14 h-14 rounded-full bg-[#071610] border-[1.5px] border-amber-600 flex items-center justify-center shadow-[0_0_18px_rgba(251,191,36,0.25)]">
                 <CoinSVG />
               </div>
             </div>
           </div>
         </div>
 
+        {/* --- BACK OF CARD (The Choice Content) --- */}
         <div className={cn(
           'absolute inset-0 rounded-2xl border-2 overflow-hidden flex flex-col',
           '[backface-visibility:hidden]',
@@ -165,30 +166,37 @@ export const GameCard = ({ choice, onClick, disabled, index = 0 }: GameCardProps
         )}
         >
           <div className={cn('absolute inset-0', cfg.glowOverlay)} />
-          <div className="relative z-10 flex flex-col h-full p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <span className={cn('text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border backdrop-blur-sm', cfg.badge)}>
+
+          <div className="relative z-10 flex flex-col h-full p-5 sm:p-6">
+            {/* Header: Category Badge and Rarity Label */}
+            <div className="flex items-center justify-between mb-2">
+              <span className={cn('text-[10px] sm:text-[11px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border backdrop-blur-sm', cfg.badge)}>
                 {cfg.label}
               </span>
               {rarity !== 'common' && (
                 <div className="flex items-center gap-1">
-                  <span className={cn('text-[7px] sm:text-[8px] font-bold uppercase tracking-wider', rarityInfo.color)}>
+                  <span className={cn('text-[10px] sm:text-[11px] font-bold uppercase tracking-wider', rarityInfo.color)}>
                     {rarityInfo.label}
                   </span>
-                  <Sparkles className="w-2.5 h-2.5 text-yellow-400" />
+                  <Sparkles className="w-3 h-3 text-yellow-400" />
                 </div>
               )}
             </div>
 
-            <div className="flex-1 flex items-center justify-center">
-              <span className="text-[48px] sm:text-[56px] leading-none filter drop-shadow-2xl">{icon}</span>
+            {/* Icon: Fixed height to prevent squishing text */}
+            <div className="h-16 sm:h-20 flex items-center justify-center my-2">
+              <span className="text-[42px] sm:text-[52px] leading-none filter drop-shadow-2xl">{icon}</span>
             </div>
 
-            <div className="pt-2 sm:pt-3 border-t border-white/15 text-center">
-              <p className="text-white/90 font-semibold text-[10px] sm:text-xs leading-snug tracking-wide line-clamp-2">
+            {/* Main Content Area: Centered vertically and takes up remaining space */}
+            <div className="flex-1 flex flex-col items-center justify-center border-t border-white/10 mt-2">
+              <p className="text-white text-center font-bold text-base sm:text-lg leading-snug tracking-tight line-clamp-4 px-1">
                 {choice.text}
               </p>
             </div>
+
+            {/* Visual Spacer */}
+            <div className="h-2" />
           </div>
         </div>
       </div>
