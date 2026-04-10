@@ -35,7 +35,9 @@ public class Main {
             config.bundledPlugins.enableCors(cors -> {
                 // Simplified CORS rule that handles everything
                 cors.addRule(it -> {
-                    it.reflectClientOrigin = true; 
+                    // Explicitly trust your local dev server and your production Netlify
+                    it.allowHost("http://localhost:5173");
+                    it.allowHost("https://remarkable-hotteok-9a5dc2.netlify.app");
                     it.allowCredentials = true;
                 });
             });

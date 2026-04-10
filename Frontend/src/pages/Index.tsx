@@ -100,7 +100,6 @@ const Index = () => {
 
       {/* Render the fully self-contained AuthPanel we built earlier */}
       <div className="relative z-50">
-        <AuthPanel />
       </div>
 
       <AnimatePresence mode="wait">

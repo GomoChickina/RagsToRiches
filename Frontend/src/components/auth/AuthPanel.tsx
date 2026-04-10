@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogIn, LogOut, UserPlus, Loader2 } from "lucide-react";
+import { LogIn, LogOut, UserPlus, Loader2, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -100,22 +100,42 @@ export const AuthPanel = () => {
   // ── RENDER ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="fixed right-6 top-6 z-50 flex items-center gap-4">
+    // Changed: smaller margins and gaps on mobile (right-3 top-3 gap-2)
+    <div className="fixed right-3 top-3 sm:right-6 sm:top-6 z-50 flex items-center gap-2 sm:gap-4">
+
+      {/* Global Coin Balance */}
+      {user && (
+        <div className="px-3 sm:px-4 py-1.5 rounded-full bg-emerald-900/90 backdrop-blur-md border border-emerald-500/40 shadow-lg flex items-center gap-1.5 sm:gap-2 transition-all shrink-0">
+          <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gold shrink-0" />
+          <span className="text-xs sm:text-sm font-bold tracking-wide text-emerald-50">
+            ${user.stats?.money ? Math.round(user.stats.money).toLocaleString() : 0}
+          </span>
+        </div>
+      )}
+
       {/* Status Badge (Guest/Signed In) */}
-      <div className="px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-lg flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${user ? 'bg-primary animate-pulse' : 'bg-emerald-500/50'}`} />
-        <span className="text-sm font-bold tracking-wide text-emerald-50">
-          {user ? `Signed in as ${user.name}` : "Guest Mode"}
+      <div className="px-3 sm:px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-lg flex items-center gap-2 whitespace-nowrap shrink-0">
+        {/* shrink-0 prevents the dot from turning into an oval */}
+        <div className={`w-2 h-2 rounded-full shrink-0 ${user ? 'bg-primary animate-pulse' : 'bg-emerald-500/50'}`} />
+        <span className="text-xs sm:text-sm font-bold tracking-wide text-emerald-50">
+          {user ? (
+            <>
+              {/* Hide "Signed in as " on mobile, show only name */}
+              <span className="hidden sm:inline">Signed in as </span>
+              {user.name}
+            </>
+          ) : (
+            "Guest"
+          )}
         </span>
       </div>
 
       {!user ? (
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); setLoginError(null); setSignupError(null); }}>
           <DialogTrigger asChild>
-            {/* Styled "Sign In" Trigger Button */}
-            <Button className="gap-2 bg-emerald-900/80 hover:bg-emerald-800 text-white border border-emerald-500/30 backdrop-blur-md rounded-full px-6 py-5 shadow-lg transition-all hover:scale-105">
-              <LogIn className="h-4 w-4" />
-              <span className="font-bold">Sign in</span>
+            <Button className="gap-1.5 sm:gap-2 bg-emerald-900/80 hover:bg-emerald-800 text-white border border-emerald-500/30 backdrop-blur-md rounded-full px-4 sm:px-6 py-4 sm:py-5 shadow-lg transition-all hover:scale-105 shrink-0">
+              <LogIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="font-bold text-xs sm:text-sm">Sign in</span>
             </Button>
           </DialogTrigger>
 

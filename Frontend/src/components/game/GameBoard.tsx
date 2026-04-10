@@ -204,7 +204,7 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
   if (!activeCard && !gameOver) return <div className="p-10 text-center text-white">Loading Journey...</div>;
 
   return (
-    <div className="min-h-screen w-full bg-background relative overflow-x-hidden font-sans">
+    <div className="min-h-screen w-full bg-background relative overflow-x-hidden font-sans pt-24 sm:pt-28">
       <div className="relative z-10 flex flex-col h-full max-w-7xl mx-auto p-2 sm:p-4 pb-28 sm:pb-24">
 
         {/* --- JOURNEY TRACK SECTION --- */}

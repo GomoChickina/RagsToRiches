@@ -139,12 +139,7 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
   return (
     <motion.div className="fixed inset-0 bg-slate-950 backdrop-blur-xl z-50 flex flex-col overflow-y-auto lg:overflow-hidden">
       {/* Header - Mobile Sticky Height Fix */}
-      <div className="h-16 p-4 border-b border-emerald-500/30 flex items-center justify-between bg-emerald-950/80 sticky top-0 z-30">
-        <button onClick={onClose} className="flex items-center gap-2 text-emerald-100"><ArrowLeft className="w-4 h-4" /><span className="font-semibold text-sm">Back</span></button>
-        <div className="bg-emerald-900/80 rounded-full px-3 py-1 border border-emerald-500/40 flex items-center gap-1.5">
-          <Coins className="w-3.5 h-3.5 text-gold" /><span className="font-bold text-sm text-emerald-50">${user ? Math.round(user.stats.money) : 0}</span>
-        </div>
-      </div>
+
 
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         {/* Top/Left: Preview - Optimized for Mobile Viewport */}
@@ -174,13 +169,13 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
             ))}
           </div>
 
-          <div className="flex-1 p-3 sm:p-4 grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pb-24 lg:pb-6">
+          <div className="flex-1 p-3 sm:p-4 grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto pb-32 content-start">
             {currentItems.map(item => {
               const owned = canBuyOrEquip && user?.inventory?.includes(item.id);
               const equipped = canBuyOrEquip && user && ((item.type === 'outfit' && user.appearance.outfit === item.id) || (item.type === 'hat' && user.appearance.hat === item.id) || (item.type === 'glasses' && user.appearance.glasses === item.id) || (item.type === 'accessory' && user.appearance.accessory === item.id));
               const visual = VISUAL_ASSETS[item.id] || { icon: '✨', desc: '' };
               return (
-                <div key={item.id} onMouseEnter={() => handleHover(item)} onMouseLeave={() => handleHover(null)} className={cn("relative p-3 sm:p-4 rounded-2xl border border-emerald-500/20 bg-emerald-950/30 flex flex-col gap-2.5 sm:gap-3", equipped && "border-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.3)]")}>
+                <div key={item.id} onMouseEnter={() => handleHover(item)} onMouseLeave={() => handleHover(null)} className={cn("relative h-fit p-3 sm:p-4 rounded-2xl border border-emerald-500/20 bg-emerald-950/30 flex flex-col gap-2.5 sm:gap-3", equipped && "border-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.3)]")}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-900/80 border border-emerald-500/40 flex items-center justify-center text-lg sm:text-xl">{visual.icon}</div>

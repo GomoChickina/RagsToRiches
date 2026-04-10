@@ -9,6 +9,7 @@ import Shop from "./pages/Shop";
 import Game from "./pages/Game";
 import Leaderboard from "./pages/Leaderboard";
 import NotFound from "./pages/NotFound";
+import { AuthPanel } from "@/components/auth/AuthPanel";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <AuthPanel />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
