@@ -1,6 +1,5 @@
 package ragstoriches;
 
-// External Libraries
 import io.github.cdimascio.dotenv.Dotenv;
 import io.javalin.Javalin;
 import ragstoriches.Api.AuthApi;
@@ -9,59 +8,81 @@ import ragstoriches.database.MongoDB;
 import ragstoriches.logic.RagsToRichesCalculator;
 
 public class Main {
+    private static final int DEFAULT_PORT = 8081;
+
     public static void main(String[] args) {
-        // 1. Config & Environment
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        String mongoUri = getEnv(dotenv, "MONGO_URI");
-        String jwtSecret = getEnv(dotenv, "JWT_SECRET");
-        String geminiKey = getEnv(dotenv, "GEMINI_API_KEY");
+        Dotenv dotenv = Dotenv.configure()
+                .ignoreIfMalformed()
+                .ignoreIfMissing()
+                .load();
 
-        // RENDER FIX: Read the "PORT" environment variable assigned by Render
-        // Default to 7070 for your local development
-        int port = Integer.parseInt(getEnv(dotenv, "PORT") != null ? getEnv(dotenv, "PORT") : "7070");
+        String mongoUri = firstNonBlank(
+                System.getenv("MONGODB_URI"),
+                System.getenv("MONGO_URI"),
+                dotenv.get("MONGODB_URI"),
+                dotenv.get("MONGO_URI"));
 
-        if (mongoUri == null) {
-            System.err.println("❌ ERROR: MONGO_URI is not set!");
-            System.exit(1);
+        if (mongoUri == null || mongoUri.isBlank()) {
+            throw new IllegalStateException("Missing MongoDB connection string. Set MONGODB_URI or MONGO_URI.");
         }
 
-        // 2. Initializations
+        String jwtSecret = firstNonBlank(
+                System.getenv("JWT_SECRET"),
+                dotenv.get("JWT_SECRET"));
+
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("Missing JWT_SECRET.");
+        }
+
+        String geminiKey = firstNonBlank(
+                System.getenv("GEMINI_API_KEY"),
+                dotenv.get("GEMINI_API_KEY"));
+
+        int port = parsePort(firstNonBlank(
+                System.getenv("BACKEND_PORT"),
+                System.getenv("PORT"),
+                dotenv.get("BACKEND_PORT"),
+                dotenv.get("PORT")), DEFAULT_PORT);
+
         MongoDB.init(mongoUri);
-        AuthApi auth = new AuthApi(jwtSecret != null ? jwtSecret : "fallback-secret");
+
+        AuthApi auth = new AuthApi(jwtSecret);
         GameApi game = new GameApi(new RagsToRichesCalculator());
 
-        // 3. Initialize Server & Delegate Routes (No .start() here yet)
         Javalin app = Javalin.create(config -> {
-            config.bundledPlugins.enableCors(cors -> {
-                // Simplified CORS rule that handles everything
-                cors.addRule(it -> {
-                    // Explicitly trust your local dev server and your production Netlify
-                    it.allowHost("http://localhost:5173");
-                    it.allowHost("https://remarkable-hotteok-9a5dc2.netlify.app");
-                    it.allowCredentials = true;
-                });
-            });
-
+            config.bundledPlugins.enableCors(cors -> cors.addRule(rule -> rule.anyHost()));
             new AppRouter(auth, game, geminiKey).setupRoutes(config);
         });
 
-        // --- THE JAVALIN X-RAY (Exception Handler) ---
         app.exception(Exception.class, (e, ctx) -> {
-            System.err.println("🔥 JAVALIN HIDDEN EXCEPTION ON ROUTE: " + ctx.path());
             e.printStackTrace();
-            ctx.status(500).result("Server Error: " + e.getMessage());
+            if (!ctx.res().isCommitted()) {
+                ctx.status(500).result("Server Error: " + e.getMessage());
+            }
         });
 
-        // 4. Start the server explicitly
         app.start("0.0.0.0", port);
-
-        // 5. Add Shutdown Hook
         Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
-        System.out.println("🚀 Backend is LISTENING on port " + port);
+        System.out.println("Backend is listening on http://localhost:" + port + "/api/");
     }
 
-    private static String getEnv(Dotenv dotenv, String key) {
-        String val = dotenv.get(key);
-        return (val != null) ? val : System.getenv(key);
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private static int parsePort(String value, int fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 }

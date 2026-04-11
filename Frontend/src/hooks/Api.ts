@@ -1,74 +1,95 @@
-import {
-  API_URL,
-  BackendUser,
-  SituationCard,
-  GameItem
-} from "@/types/game";
+import { API_URL, BackendUser, GameItem, SituationCard } from "@/types/game";
 
-// ── AUTH TYPES ────────────────────────────────────────────────────────────────
+export interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+}
 
-export interface AuthResult {
+export interface AuthResponse {
   token: string;
   user: BackendUser;
 }
 
-const parseAuthPayload = (raw: string): AuthResult | null => {
+export interface MeResponse {
+  id: string;
+  email: string;
+  createdAt?: string;
+}
+
+const AUTH_TOKEN_KEY = "rtr_token";
+
+const parseJson = <T>(raw: string): T | null => {
   try {
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === "object" && "token" in parsed && "user" in parsed) {
-      return parsed as AuthResult;
-    }
-    return null;
+    return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
   }
 };
 
+const getAuthHeaders = (): HeadersInit => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
-// ── API ───────────────────────────────────────────────────────────────────────
+export const authStorage = {
+  tokenKey: AUTH_TOKEN_KEY,
+  setToken: (token: string) => localStorage.setItem(AUTH_TOKEN_KEY, token),
+  clearToken: () => localStorage.removeItem(AUTH_TOKEN_KEY),
+};
 
 export const api = {
-
-  // ── AUTH ──────────────────────────────────────────────────────────────────
-
-  register: async (name: string, email: string, password: string): Promise<AuthResult> => {
+  register: async (name: string, email: string, password: string): Promise<AuthResponse> => {
     const response = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
     });
+
     const raw = await response.text();
-    const authPayload = parseAuthPayload(raw);
-    if (authPayload) return authPayload;
-    if (!response.ok) throw new Error(raw || "Registration failed.");
-    throw new Error("Registration failed: invalid server response.");
+    const parsed = parseJson<AuthResponse>(raw);
+    if (response.ok && parsed) {
+      return parsed;
+    }
+    throw new Error(raw || "Registration failed.");
   },
 
-  login: async (email: string, password: string): Promise<AuthResult> => {
+  login: async (email: string, password: string): Promise<AuthResponse> => {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
+
     const raw = await response.text();
-    const authPayload = parseAuthPayload(raw);
-    if (authPayload) return authPayload;
-    if (!response.ok) throw new Error(raw || "Login failed.");
-    throw new Error("Login failed: invalid server response.");
+    const parsed = parseJson<AuthResponse>(raw);
+    if (response.ok && parsed) {
+      return parsed;
+    }
+    throw new Error(raw || "Login failed.");
   },
 
-  // ── GAME ──────────────────────────────────────────────────────────────────
+  me: async (): Promise<MeResponse | null> => {
+    const response = await fetch(`${API_URL}/me`, {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return response.json();
+  },
 
   getProfile: async (userId: string): Promise<BackendUser | null> => {
     try {
-      const response = await fetch(`${API_URL}/profile/${userId}`);
+      const response = await fetch(`${API_URL}/profile/${userId}`, {
+        headers: getAuthHeaders(),
+      });
       if (!response.ok) {
-        if (response.status === 404) console.warn("User not found.");
         return null;
       }
       return response.json();
     } catch (error) {
-      console.error("❌ API Error: Failed to load profile", error);
+      console.error("Failed to load profile", error);
       return null;
     }
   },
@@ -77,35 +98,45 @@ export const api = {
     try {
       const response = await fetch(`${API_URL}/profile/save`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify(user),
       });
-      if (!response.ok) throw new Error("Save failed");
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
       return response.json();
     } catch (error) {
-      console.error("❌ API Error: Failed to save profile", error);
+      console.error("Failed to save profile", error);
       return null;
     }
   },
 
   getCards: async (): Promise<SituationCard[]> => {
     try {
-      const response = await fetch(`${API_URL}/cards`);
-      if (!response.ok) throw new Error("Failed to fetch cards");
+      const response = await fetch(`${API_URL}/cards`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch cards");
+      }
       return response.json();
     } catch (error) {
-      console.error("❌ API Error: Failed to fetch cards", error);
+      console.error("Failed to fetch cards", error);
       return [];
     }
   },
 
-  getLeaderboard: async (sortBy: string = "overall"): Promise<BackendUser[]> => {
+  getLeaderboard: async (sortBy = "overall"): Promise<BackendUser[]> => {
     try {
-      const response = await fetch(`${API_URL}/leaderboard?sortBy=${sortBy}`);
-      if (!response.ok) throw new Error("Failed to fetch leaderboard");
+      const response = await fetch(`${API_URL}/leaderboard?sortBy=${sortBy}`, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard");
+      }
       return response.json();
     } catch (error) {
-      console.error("❌ API Error: Failed to fetch leaderboard", error);
+      console.error("Failed to fetch leaderboard", error);
       return [];
     }
   },
@@ -116,87 +147,76 @@ export const api = {
     choiceIndex: number
   ): Promise<BackendUser | null> => {
     try {
-      const safeUserId = String(userId ?? "")
-        .trim()
-        .replace(/^"+|"+$/g, "");
-
       const response = await fetch(`${API_URL}/choose`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: safeUserId, situationId, choiceIndex }),
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ userId, situationId, choiceIndex }),
       });
 
       const raw = await response.text();
-      let parsed: BackendUser | null = null;
-      try {
-        parsed = raw ? JSON.parse(raw) : null;
-      } catch {
-        parsed = null;
-      }
-
-      // Some environments can return a non-2xx status even when body is usable JSON.
-      // If a valid user payload exists, use it to avoid blocking gameplay.
-      if (parsed && typeof parsed === "object" && "id" in parsed && "stats" in parsed) {
+      const parsed = parseJson<BackendUser>(raw);
+      if (parsed) {
         return parsed;
       }
-
       if (!response.ok) {
         throw new Error(raw || `Choice processing failed (${response.status})`);
       }
-
-      return parsed;
+      return null;
     } catch (error) {
-      console.error("❌ API Error:", error);
+      console.error("Choice processing failed", error);
       return null;
     }
   },
 
- getShopCatalog: async (): Promise<GameItem[]> => {
+  getShopCatalog: async (): Promise<GameItem[]> => {
     try {
-      const response = await fetch(`${API_URL}/shop/catalog`);
-      
-      // Parse the JSON regardless of the status code
+      const response = await fetch(`${API_URL}/shop/catalog`, {
+        headers: getAuthHeaders(),
+      });
       const data = await response.json();
-      
-      // If the backend sent us our array of items, just use it and ignore the 400
-      if (Array.isArray(data)) {
-        return data;
-      }
-
-      // If it's not an array, THEN throw the error
-      if (!response.ok) throw new Error(`Failed to fetch catalog: ${response.status}`);
-      
-      return data;
+      return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error("❌ API Error: Shop catalog failed", error);
+      console.error("Shop catalog failed", error);
       return [];
     }
   },
 
-  buyItem: async (userId: string, itemId: string): Promise<BackendUser | null> => {
-    const response = await fetch(`${API_URL}/shop/buy`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, itemId }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText);
+  buyItem: async (userId: string | null, itemId: string): Promise<BackendUser | null> => {
+    if (!userId) {
+      throw new Error("User not logged in");
     }
-    return response.json();
+    try {
+      const response = await fetch(`${API_URL}/shop/buy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({ userId, itemId }),
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Failed to buy item", error);
+      return null;
+    }
   },
 
-  equipItem: async (userId: string, itemId: string): Promise<BackendUser | null> => {
+  equipItem: async (userId: string | null, itemId: string): Promise<BackendUser | null> => {
+    if (!userId) {
+      throw new Error("User not logged in");
+    }
     try {
       const response = await fetch(`${API_URL}/shop/equip`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ userId, itemId }),
       });
-      if (!response.ok) throw new Error("Equip failed");
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
       return response.json();
     } catch (error) {
-      console.error("❌ API Error: Equip failed", error);
+      console.error("Failed to equip item", error);
       return null;
     }
   },
