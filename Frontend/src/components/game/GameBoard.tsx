@@ -19,7 +19,9 @@ import {
   DollarSign,
   PiggyBank,
   Brain,
-  ArrowRight
+  ArrowLeft,
+  ArrowRight,
+  House
 } from 'lucide-react';
 import { GeminiCoach } from './GeminiCoach';
 
@@ -27,6 +29,7 @@ interface GameBoardProps {
   playerCharacter: PlayerCharacter;
   cards: SituationCard[];
   onGameEnd: (score: number) => void;
+  onExit: () => void;
 }
 
 // ─── Utility Ranking Logic ────────────────────────────────────────────────────────────
@@ -57,7 +60,7 @@ function getBestAndWorstIndex(options: SituationCard['options']): { bestIndex: n
   return { bestIndex, worstIndex };
 }
 
-export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps) => {
+export const GameBoard = ({ playerCharacter, cards, onGameEnd, onExit }: GameBoardProps) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [stats, setStats] = useState<BackendStats>(playerCharacter.stats);
   const [currentScore, setCurrentScore] = useState<number>(playerCharacter.overallScore || 0);
@@ -206,6 +209,16 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd }: GameBoardProps)
   return (
     <div className="min-h-screen w-full bg-background relative overflow-x-hidden font-sans pt-24 sm:pt-28">
       <div className="relative z-10 flex flex-col h-full max-w-7xl mx-auto p-2 sm:p-4 pb-28 sm:pb-24">
+        <div className="mb-4 flex justify-start px-1 sm:px-2">
+          <button
+            onClick={onExit}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md transition-colors hover:bg-black/50"
+          >
+            <House className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </button>
+        </div>
 
         {/* --- JOURNEY TRACK SECTION --- */}
         {/* Fix: Added pt-6 to ensure the character face isn't clipped at the top */}

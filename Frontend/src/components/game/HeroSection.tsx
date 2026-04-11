@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import {
-  Play, Coins, Trophy, TrendingUp, PiggyBank, Wallet, Target, ShoppingBag,
+  Play, Trophy, TrendingUp, PiggyBank, Wallet, Target, ShoppingBag,
   Calculator, CreditCard, Landmark, PieChart, DollarSign, Percent, ArrowUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,7 @@ interface HeroSectionProps {
 
 export const HeroSection = ({ onNavigate, playerCharacter }: HeroSectionProps) => {
   if (!playerCharacter) return null;
-  const score = Math.round(playerCharacter.overallScore || 0);
+  const accountBalance = Math.round(playerCharacter.stats?.money || 0);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden text-text-main bg-background">
@@ -95,19 +95,22 @@ export const HeroSection = ({ onNavigate, playerCharacter }: HeroSectionProps) =
             />
           </div>
 
-          {/* Points display (Clickable Pill) */}
+          {/* Account balance display */}
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onNavigate('shop')}
             className="mt-8 flex items-center gap-3 bg-emerald-900/90 hover:bg-emerald-800 px-6 py-2.5 rounded-full border border-emerald-500/30 backdrop-blur-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.15)] group-hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] z-20"
           >
-            <div className="bg-gold/10 p-1.5 rounded-full">
-              <Coins className="w-4 h-4 text-gold" />
+            <div className="bg-emerald-300/10 p-1.5 rounded-full">
+              <Wallet className="w-4 h-4 text-emerald-300" />
             </div>
-            <span className="text-white font-bold tracking-wide text-lg">
-              {score.toLocaleString()}
-            </span>
+            <div className="text-left leading-none">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-200/60">Balance</div>
+              <span className="text-white font-bold tracking-wide text-lg">
+                ${accountBalance.toLocaleString()}
+              </span>
+            </div>
             <div className="w-px h-5 bg-white/10 mx-1" />
             <ShoppingBag className="w-4 h-4 text-emerald-400 opacity-80" />
           </motion.button>

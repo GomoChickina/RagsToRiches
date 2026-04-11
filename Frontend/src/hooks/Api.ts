@@ -27,6 +27,12 @@ const parseJson = <T>(raw: string): T | null => {
   }
 };
 
+const toApiError = async (response: Response, fallback: string) => {
+  const raw = await response.text();
+  const message = raw.replace(/^Server Error:\s*/i, "").trim();
+  return new Error(message || fallback);
+};
+
 const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -185,39 +191,33 @@ export const api = {
     if (!userId) {
       throw new Error("User not logged in");
     }
-    try {
-      const response = await fetch(`${API_URL}/shop/buy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ userId, itemId }),
-      });
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-      return await response.json();
-    } catch (error) {
+    const response = await fetch(`${API_URL}/shop/buy`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ userId, itemId }),
+    });
+    if (!response.ok) {
+      const error = await toApiError(response, "Could not buy item");
       console.error("Failed to buy item", error);
-      return null;
+      throw error;
     }
+    return await response.json();
   },
 
   equipItem: async (userId: string | null, itemId: string): Promise<BackendUser | null> => {
     if (!userId) {
       throw new Error("User not logged in");
     }
-    try {
-      const response = await fetch(`${API_URL}/shop/equip`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ userId, itemId }),
-      });
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-      return response.json();
-    } catch (error) {
+    const response = await fetch(`${API_URL}/shop/equip`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ userId, itemId }),
+    });
+    if (!response.ok) {
+      const error = await toApiError(response, "Could not equip item");
       console.error("Failed to equip item", error);
-      return null;
+      throw error;
     }
+    return response.json();
   },
 };

@@ -4,8 +4,9 @@ import { PlayerCharacter, GameItem } from '@/types/game';
 import { PlayerCharacterComponent } from './PlayerCharacter';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { ShoppingBag, Sparkles, Lock, Check, Coins, ArrowLeft, Loader2, LogIn } from 'lucide-react';
+import { ShoppingBag, Coins, Loader2, LogIn } from 'lucide-react';
 import { api } from "@/hooks/Api";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const VISUAL_ASSETS: Record<string, { icon: string; desc: string }> = {
   'default_outfit': { icon: '👕', desc: 'Your everyday look' },
@@ -21,12 +22,10 @@ const DEFAULT_GUEST_CHARACTER: PlayerCharacter = {
   id: 'guest',
   name: 'Guest',
   email: '',
-  appearance: { outfit: 'default', hat: 'none', glasses: 'none', accessory: 'none' },
+  appearance: { outfit: 'default_outfit', hat: 'none_hat', glasses: 'none_glasses', accessory: 'none_accessory' },
   inventory: [],
   stats: { money: 0, financeKnowledge: 0, happiness: 100 },
   overallScore: 0,
-  outfit: '',
-  accessory: ''
 };
 
 interface CharacterShopProps {
@@ -39,11 +38,13 @@ interface CharacterShopProps {
 type TabType = 'outfit' | 'hat' | 'glasses' | 'accessory';
 
 export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: CharacterShopProps) => {
+  const { updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('outfit');
   const [user, setUser] = useState<PlayerCharacter | null>(null);
   const [catalog, setCatalog] = useState<GameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewUser, setPreviewUser] = useState<PlayerCharacter>(DEFAULT_GUEST_CHARACTER);
+  const [busyItemId, setBusyItemId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -62,6 +63,7 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
               const pc = userData as PlayerCharacter;
               setUser(pc);
               setPreviewUser(pc);
+              updateUser(pc);
             }
           } catch (profileErr) {
             console.warn("Could not load user profile, defaulting to guest view", profileErr);
@@ -82,34 +84,38 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
   }, [userId, isLoggedIn]);
 
   const handleBuy = async (item: GameItem) => {
-    if (!user) return; setLoading(true);
+    if (!user) return;
+    setBusyItemId(item.id);
     try {
       const updatedUser = await api.buyItem(userId, item.id);
       if (updatedUser) {
         setUser(updatedUser as PlayerCharacter);
         setPreviewUser(updatedUser as PlayerCharacter);
+        updateUser(updatedUser);
         toast.success(`Bought ${item.name}!`);
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Could not buy item");
     } finally {
-      setLoading(false);
+      setBusyItemId(null);
     }
   };
 
   const handleEquip = async (item: GameItem) => {
-    if (!user) return; setLoading(true);
+    if (!user) return;
+    setBusyItemId(item.id);
     try {
       const updatedUser = await api.equipItem(userId, item.id);
       if (updatedUser) {
         setUser(updatedUser as PlayerCharacter);
         setPreviewUser(updatedUser as PlayerCharacter);
+        updateUser(updatedUser);
         toast.success(`Equipped ${item.name}!`);
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Could not equip item");
     } finally {
-      setLoading(false);
+      setBusyItemId(null);
     }
   };
 
@@ -135,19 +141,47 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
 
   const currentItems = catalog.filter(i => i.type === activeTab);
   const canBuyOrEquip = isLoggedIn && user != null;
+  const accountBalance = Math.round((user?.stats.money ?? 0));
+  const totalPoints = Math.round((user?.overallScore ?? 0));
 
   return (
     <motion.div className="fixed inset-0 bg-slate-950 backdrop-blur-xl z-50 flex flex-col overflow-y-auto lg:overflow-hidden">
-      {/* Header - Mobile Sticky Height Fix */}
-
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-emerald-500/20 bg-slate-950/95 px-4 py-4 backdrop-blur-md sm:px-6">
+        <button
+          onClick={onClose}
+          className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-black/50"
+        >
+          Back
+        </button>
+        <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-900/70 px-4 py-2">
+          <Coins className="h-4 w-4 text-yellow-400" />
+          <span className="text-sm font-bold text-emerald-50">
+            {isLoggedIn ? `${totalPoints.toLocaleString()} pts` : "Sign in to shop"}
+          </span>
+        </div>
+      </div>
 
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         {/* Top/Left: Preview - Optimized for Mobile Viewport */}
-        <div className="w-full lg:w-1/3 lg:min-w-[300px] border-b lg:border-b-0 lg:border-r border-emerald-500/20 bg-gradient-to-b from-emerald-950 to-slate-950 flex flex-col items-center justify-center p-4 py-8 lg:p-6 lg:py-6 shrink-0">
+          <div className="w-full lg:w-1/3 lg:min-w-[300px] border-b lg:border-b-0 lg:border-r border-emerald-500/20 bg-gradient-to-b from-emerald-950 to-slate-950 flex flex-col items-center justify-center p-4 py-8 lg:p-6 lg:py-6 shrink-0">
           <div className="w-48 h-56 mb-4 transition-all flex items-center justify-center scale-75 sm:scale-100 origin-center">
             <PlayerCharacterComponent character={previewUser} size="lg" />
           </div>
-          <div className="text-center text-emerald-100/60 text-[10px] sm:text-sm max-w-[200px]">Customize your avatar with your smart earnings.</div>
+          <div className="text-center text-emerald-100/60 text-[10px] sm:text-sm max-w-[240px]">Customize your avatar with your smart earnings.</div>
+          {isLoggedIn && user && (
+            <>
+              {/* <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-black/20 px-5 py-4 text-center">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-200/60">Total Points</div>
+                <div className="mt-1 text-2xl font-black text-white">{totalPoints.toLocaleString()} pts</div>
+                <div className="mt-1 text-xs text-emerald-100/60">Matches your leaderboard score</div>
+              </div> */}
+              <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-black/20 px-5 py-4 text-center">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-200/60">Account Balance</div>
+                <div className="mt-1 text-2xl font-black text-white">${accountBalance.toLocaleString()}</div>
+                <div className="mt-1 text-xs text-emerald-100/60">Used for shop purchases</div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Bottom/Right: Grid with Scrollable Tabs */}
@@ -174,6 +208,14 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
               const owned = canBuyOrEquip && user?.inventory?.includes(item.id);
               const equipped = canBuyOrEquip && user && ((item.type === 'outfit' && user.appearance.outfit === item.id) || (item.type === 'hat' && user.appearance.hat === item.id) || (item.type === 'glasses' && user.appearance.glasses === item.id) || (item.type === 'accessory' && user.appearance.accessory === item.id));
               const visual = VISUAL_ASSETS[item.id] || { icon: '✨', desc: '' };
+              const lacksMoney = Boolean(user && user.stats.money < item.price);
+              const lacksKnowledge = Boolean(user && user.stats.financeKnowledge < item.knowledgeReq);
+              const isBusy = busyItemId === item.id;
+              const cannotBuyReason = lacksKnowledge
+                ? `Need ${item.knowledgeReq} knowledge`
+                : lacksMoney
+                  ? "Not enough money"
+                  : null;
               return (
                 <div key={item.id} onMouseEnter={() => handleHover(item)} onMouseLeave={() => handleHover(null)} className={cn("relative h-fit p-3 sm:p-4 rounded-2xl border border-emerald-500/20 bg-emerald-950/30 flex flex-col gap-2.5 sm:gap-3", equipped && "border-emerald-400/80 shadow-[0_0_20px_rgba(52,211,153,0.3)]")}>
                   <div className="flex items-center justify-between">
@@ -184,12 +226,17 @@ export const CharacterShop = ({ userId, isLoggedIn, onClose, onSignInClick }: Ch
                         <div className="text-[9px] sm:text-[10px] text-emerald-200/60 truncate">{visual.desc}</div>
                       </div>
                     </div>
-                    <div className="text-right text-[10px] sm:text-xs shrink-0"><div className="font-bold text-emerald-300">${item.price}</div></div>
+                    <div className="text-right text-[10px] sm:text-xs shrink-0">
+                      <div className="font-bold text-emerald-300">${item.price}</div>
+                      {item.knowledgeReq > 0 && <div className="text-amber-200/70">Req: {item.knowledgeReq} IQ</div>}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-2">
-                    <div className="text-[9px] sm:text-[10px] text-emerald-200/50">{owned ? "Owned" : "Available"}</div>
+                    <div className="text-[9px] sm:text-[10px] text-emerald-200/50">
+                      {owned ? "Owned" : cannotBuyReason ?? "Available"}
+                    </div>
                     <div className="flex gap-2">
-                      {!canBuyOrEquip ? <span className="text-amber-200/70 text-[9px] font-bold uppercase tracking-tighter">Login Required</span> : equipped ? <span className="text-emerald-400 text-[9px] font-bold uppercase">Equipped</span> : owned ? <button onClick={() => handleEquip(item)} className="px-2.5 py-1 rounded-full text-[9px] font-bold bg-emerald-500 text-emerald-950 active:scale-95 transition-transform">Equip</button> : <button onClick={() => handleBuy(item)} className="px-2.5 py-1 rounded-full text-[9px] font-bold bg-amber-400 text-emerald-950 flex items-center gap-1 active:scale-95 transition-transform"><ShoppingBag className="w-2.5 h-2.5" /> Buy</button>}
+                      {!canBuyOrEquip ? <span className="text-amber-200/70 text-[9px] font-bold uppercase tracking-tighter">Login Required</span> : equipped ? <span className="text-emerald-400 text-[9px] font-bold uppercase">Equipped</span> : owned ? <button onClick={() => handleEquip(item)} disabled={isBusy} className="px-2.5 py-1 rounded-full text-[9px] font-bold bg-emerald-500 text-emerald-950 active:scale-95 transition-transform disabled:opacity-60">{isBusy ? "..." : "Equip"}</button> : <button onClick={() => handleBuy(item)} disabled={Boolean(cannotBuyReason) || isBusy} className="px-2.5 py-1 rounded-full text-[9px] font-bold bg-amber-400 text-emerald-950 flex items-center gap-1 active:scale-95 transition-transform disabled:cursor-not-allowed disabled:bg-slate-600 disabled:text-slate-200">{isBusy ? <><Loader2 className="w-2.5 h-2.5 animate-spin" /> Buying</> : <><ShoppingBag className="w-2.5 h-2.5" /> Buy</>}</button>}
                     </div>
                   </div>
                 </div>

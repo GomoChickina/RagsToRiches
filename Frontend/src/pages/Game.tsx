@@ -9,7 +9,7 @@ import { useAuth } from '@/components/auth/AuthContext';
 
 const Game = () => {
     const navigate = useNavigate();
-    const { user: authUser } = useAuth(); // Grab the logged-in user!
+    const { user: authUser, updateUser } = useAuth(); // Grab the logged-in user!
 
     const [user, setUser] = useState<PlayerCharacter | null>(null);
     const [cards, setCards] = useState<SituationCard[]>([]);
@@ -31,6 +31,7 @@ const Game = () => {
                     if (!uRes.ok) throw new Error("Profile not found");
                     const userData = await uRes.json();
                     setUser(userData);
+                    updateUser(userData);
                 } else {
                     // Generate a temporary Guest profile in memory
                     setUser({
@@ -75,7 +76,10 @@ const Game = () => {
         if (authUser) {
             try {
                 // Real user: Save to MongoDB
-                await api.saveProfile(userToSave);
+                const savedUser = await api.saveProfile(userToSave);
+                if (savedUser) {
+                    updateUser(savedUser);
+                }
                 toast.success(`Game Over! You earned $${score}`);
             } catch (err) {
                 toast.error("Failed to save progress");
@@ -102,6 +106,7 @@ const Game = () => {
                 playerCharacter={user}
                 cards={cards}
                 onGameEnd={handleGameEnd}
+                onExit={() => navigate('/')}
             />
         </div>
     );

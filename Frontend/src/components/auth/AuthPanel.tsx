@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Coins, Loader2, LogIn, LogOut, UserPlus } from "lucide-react";
+import { Loader2, LogIn, LogOut, Trophy, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/hooks/Api";
 import { useAuth } from "./AuthContext";
+
+import {Coins} from 'lucide-react';
 
 const toSafeAuthMessage = (err: unknown, fallback: string) => {
   const message = err instanceof Error ? err.message : fallback;
@@ -85,14 +87,19 @@ export const AuthPanel = () => {
     if (e.key === "Enter") handleSignup();
   };
 
+  const showCornerBalance = Boolean(user);
+
   return (
     <div className="fixed right-3 top-3 z-50 flex items-center gap-2 sm:right-6 sm:top-6 sm:gap-4">
-      {user && (
+      {showCornerBalance && (
         <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-900/90 px-3 py-1.5 shadow-lg backdrop-blur-md sm:px-4">
-          <Coins className="h-3.5 w-3.5 shrink-0 text-yellow-400 sm:h-4 sm:w-4" />
-          <span className="text-xs font-bold tracking-wide text-emerald-50 sm:text-sm">
-            ${Math.round(user.stats?.money ?? 0).toLocaleString()}
-          </span>
+          <Coins className="h-4 w-4 text-yellow-400" />
+          <div className="leading-none">
+            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-200/60 sm:text-[10px]">Points</div>
+            <span className="text-xs font-bold tracking-wide text-emerald-50 sm:text-sm">
+              {Math.round(user.overallScore ?? 0).toLocaleString()} pts
+            </span>
+          </div>
         </div>
       )}
 
