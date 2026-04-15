@@ -34,9 +34,9 @@ export interface BackendUser {
 export type PlayerCharacter = BackendUser;
 
 export interface Effect {
-  money: number;
-  happiness: number;
-  financeKnowledge: number;
+  money: string | number; // Make sure this accepts strings for your "+/++" logic
+  happiness: string | number;
+  financeKnowledge: string | number;
 }
 
 export interface Choice {
@@ -49,9 +49,11 @@ export interface SituationCard {
   id?: string | number;
   _id?: string;
   situationId: number;
-  title?: string;
+  type?: 'situation' | 'narrative'; // <-- NEW
+  title?: string; // <-- NEW
+  year?: number;  // <-- NEW
   scenario: string;
-  options: Choice[];
+  options: Choice[]; // This will be an empty array for narratives
 }
 
 export type CardCategory = "income" | "expense" | "savings" | "investment";

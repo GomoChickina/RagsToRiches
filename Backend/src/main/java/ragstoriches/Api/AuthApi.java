@@ -77,21 +77,23 @@ public class AuthApi {
 
     // ── TOKEN VERIFICATION (use in middleware) ────────────────────────────────
     public String verifyTokenAndGetUserId(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(jwtKey)
+        // Updated for JJWT 0.12.x
+        return Jwts.parser()
+                .verifyWith(jwtKey)
                 .build()
-                .parseClaimsJws(token)
-                .getBody()
+                .parseSignedClaims(token)
+                .getPayload()
                 .getSubject();
     }
 
     // ── PRIVATE HELPERS ───────────────────────────────────────────────────────
     private String issueToken(String userId) {
+        // Updated for JJWT 0.12.x (setters were renamed, and algorithm is auto-detected)
         return Jwts.builder()
-                .setSubject(userId)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRY_MS))
-                .signWith(jwtKey, SignatureAlgorithm.HS256)
+                .subject(userId)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + JWT_EXPIRY_MS))
+                .signWith(jwtKey) 
                 .compact();
     }
 

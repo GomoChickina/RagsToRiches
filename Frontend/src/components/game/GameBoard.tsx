@@ -21,7 +21,8 @@ import {
   Brain,
   ArrowLeft,
   ArrowRight,
-  House
+  House,
+  BookOpen // Added for narrative icon
 } from 'lucide-react';
 import { GeminiCoach } from './GeminiCoach';
 
@@ -32,7 +33,6 @@ interface GameBoardProps {
   onExit: () => void;
 }
 
-// ─── Utility Ranking Logic ────────────────────────────────────────────────────────────
 function getSymbolMultiplier(value: string | number): number {
   const text = String(value ?? '').trim();
   switch (text) {
@@ -54,6 +54,8 @@ function optionScore(option: SituationCard['options'][number]): number {
 }
 
 function getBestAndWorstIndex(options: SituationCard['options']): { bestIndex: number; worstIndex: number } {
+  // Safe guard: if options is empty (like in narratives), return 0s
+  if (!options || options.length === 0) return { bestIndex: 0, worstIndex: 0 };
   const scores = options.map(optionScore);
   const bestIndex = scores.indexOf(Math.max(...scores));
   const worstIndex = scores.indexOf(Math.min(...scores));
@@ -150,7 +152,6 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd, onExit }: GameBoa
         setPlayerReaction('neutral');
       }, 2000);
 
-      // 1) BEST choice => no coach shown
       if (isBestChoice) {
         setLastChoiceContext(null);
         setAutoExplainCoach(false);
@@ -162,7 +163,6 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd, onExit }: GameBoa
         return;
       }
 
-      // 2) WORST choice => auto trigger coach (manual continue after explanation)
       if (isWorstChoice) {
         setLastChoiceContext({
           situationTitle: activeCard.scenario,
@@ -175,7 +175,6 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd, onExit }: GameBoa
         return;
       }
 
-      // 3) MIDDLE choice => optional ask coach for 3s, then auto-advance
       if (isMiddleChoice) {
         setLastChoiceContext({
           situationTitle: activeCard.scenario,
@@ -220,87 +219,86 @@ export const GameBoard = ({ playerCharacter, cards, onGameEnd, onExit }: GameBoa
           </button>
         </div>
 
-        {/* --- JOURNEY TRACK SECTION --- */}
-        {/* Fix: Added pt-6 to ensure the character face isn't clipped at the top */}
-        <div className="relative w-full rounded-3xl bg-emerald-950/40 border border-white/5 mb-4 shadow-inner pt-6 pb-2">
-          <div className="scale-95 sm:scale-100 origin-center transition-transform overflow-visible">
-            <JourneyTrack currentRound={currentCardIndex} totalRounds={cards.length} character={playerCharacter} />
-          </div>
-        </div>
-
-        {/* --- BATTLE / CHARACTER SECTION --- */}
-        {/* Fix: Character Centering & Size Equality */}
-        <div className="grid grid-cols-[minmax(0,120px)_auto_minmax(0,120px)] sm:grid-cols-[1fr_auto_1fr] items-center justify-center mb-4 sm:mb-6 px-1 sm:px-4 gap-1 relative min-h-[130px] sm:min-h-[200px] w-full">
-
-          {/* Player Stage */}
-          <div className="w-full flex justify-center items-center mx-auto">
-            <div className="scale-75 sm:scale-100 origin-center">
-              <PlayerCharacterComponent character={playerCharacter} reaction={playerReaction} />
+        {/* Dynamic View: Check if it's a narrative card */}
+        {activeCard?.type === 'narrative' ? (
+          <NarrativeView card={activeCard} onContinue={advanceGame} />
+        ) : (
+          <>
+            {/* --- JOURNEY TRACK SECTION --- */}
+            <div className="relative w-full rounded-3xl bg-emerald-950/40 border border-white/5 mb-4 shadow-inner pt-6 pb-2">
+              <div className="scale-95 sm:scale-100 origin-center transition-transform overflow-visible">
+                <JourneyTrack currentRound={currentCardIndex} totalRounds={cards.length} character={playerCharacter} />
+              </div>
             </div>
-          </div>
 
-          {/* Round Counter (Absolute center for stability) */}
-          <div className="flex flex-col items-center z-10 shrink-0 px-2">
-            <div className="bg-primary text-emerald-950 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-black text-[10px] sm:text-xs border-2 border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.3)] whitespace-nowrap">
-              ROUND {currentCardIndex + 1}/{cards.length}
+            {/* --- BATTLE / CHARACTER SECTION --- */}
+            <div className="grid grid-cols-[minmax(0,120px)_auto_minmax(0,120px)] sm:grid-cols-[1fr_auto_1fr] items-center justify-center mb-4 sm:mb-6 px-1 sm:px-4 gap-1 relative min-h-[130px] sm:min-h-[200px] w-full">
+              <div className="w-full flex justify-center items-center mx-auto">
+                <div className="scale-75 sm:scale-100 origin-center">
+                  <PlayerCharacterComponent character={playerCharacter} reaction={playerReaction} />
+                </div>
+              </div>
+              <div className="flex flex-col items-center z-10 shrink-0 px-2">
+                <div className="bg-primary text-emerald-950 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-black text-[10px] sm:text-xs border-2 border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.3)] whitespace-nowrap">
+                  ROUND {currentCardIndex + 1}/{cards.length}
+                </div>
+              </div>
+              <div className="w-full flex justify-center items-center mx-auto">
+                <div className="scale-75 sm:scale-100 origin-center">
+                  {evilCharacter && (
+                    <VillainCharacter
+                      character={evilCharacter}
+                      state={getVillainState()}
+                      health={evilHealth}
+                      maxHealth={evilMaxHealth}
+                      damage={damageDealt}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Villain Stage */}
-          <div className="w-full flex justify-center items-center mx-auto">
-            <div className="scale-75 sm:scale-100 origin-center">
-              {evilCharacter && (
-                <VillainCharacter
-                  character={evilCharacter}
-                  state={getVillainState()}
-                  health={evilHealth}
-                  maxHealth={evilMaxHealth}
-                  damage={damageDealt}
-                />
-              )}
+            {/* --- STATS GRID --- */}
+            <div className="grid grid-cols-3 gap-2 sm:flex sm:justify-center sm:gap-4 mb-6 sm:mb-8">
+              <StatCard icon={<DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />} label="Money" value={`$${stats.money}`} color={stats.money > 0 ? 'text-emerald-400' : 'text-red-400'} />
+              <StatCard icon={<Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />} label="Knowledge" value={`${stats.financeKnowledge}`} color="text-blue-400" />
+              <StatCard icon={<PiggyBank className="w-3.5 h-3.5 sm:w-4 sm:h-4" />} label="Happy" value={`${stats.happiness}`} color="text-yellow-400" />
             </div>
-          </div>
-        </div>
 
-        {/* --- STATS GRID --- */}
-        <div className="grid grid-cols-3 gap-2 sm:flex sm:justify-center sm:gap-4 mb-6 sm:mb-8">
-          <StatCard icon={<DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />} label="Money" value={`$${stats.money}`} color={stats.money > 0 ? 'text-emerald-400' : 'text-red-400'} />
-          <StatCard icon={<Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />} label="Knowledge" value={`${stats.financeKnowledge}`} color="text-blue-400" />
-          <StatCard icon={<PiggyBank className="w-3.5 h-3.5 sm:w-4 sm:h-4" />} label="Happy" value={`${stats.happiness}`} color="text-yellow-400" />
-        </div>
+            {/* --- SITUATION / CHOICES --- */}
+            {!gameOver && activeCard && (
+              <div className="flex-1 flex flex-col items-center justify-start w-full">
+                <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} key={currentCardIndex} className="mb-6 text-center max-w-3xl w-full bg-emerald-950/60 p-4 sm:p-6 rounded-2xl border border-white/10 backdrop-blur-md shadow-2xl">
+                  <h2 className="font-display text-lg md:text-2xl leading-relaxed text-white drop-shadow-md px-2">
+                    &quot;{activeCard.scenario}&quot;
+                  </h2>
+                </motion.div>
 
-        {/* --- SITUATION / CHOICES --- */}
-        {!gameOver && activeCard && (
-          <div className="flex-1 flex flex-col items-center justify-start w-full">
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} key={currentCardIndex} className="mb-6 text-center max-w-3xl w-full bg-emerald-950/60 p-4 sm:p-6 rounded-2xl border border-white/10 backdrop-blur-md shadow-2xl">
-              <h2 className="font-display text-lg md:text-2xl leading-relaxed text-white drop-shadow-md px-2">
-                &quot;{activeCard.scenario}&quot;
-              </h2>
-            </motion.div>
-
-            {(lastChoiceContext || hasAskedCoach) && (
-              <div className="flex flex-col items-center gap-4 sm:gap-6 w-full mb-4 px-2">
-                {lastChoiceContext && (
-                  <GeminiCoach context={lastChoiceContext} onAsked={onAskCoach} autoExplain={autoExplainCoach} />
+                {(lastChoiceContext || hasAskedCoach) && (
+                  <div className="flex flex-col items-center gap-4 sm:gap-6 w-full mb-4 px-2">
+                    {lastChoiceContext && (
+                      <GeminiCoach context={lastChoiceContext} onAsked={onAskCoach} autoExplain={autoExplainCoach} />
+                    )}
+                    {hasAskedCoach && (
+                      <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} onClick={advanceGame} className="w-full max-w-xs sm:max-w-none sm:w-auto bg-primary hover:bg-emerald-400 text-emerald-950 font-bold py-3 px-6 sm:px-12 rounded-full shadow-[0_4px_20px_rgba(52,211,153,0.4)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
+                        Continue Journey <ArrowRight className="w-5 h-5" />
+                      </motion.button>
+                    )}
+                  </div>
                 )}
-                {hasAskedCoach && (
-                  <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} onClick={advanceGame} className="w-full max-w-xs sm:max-w-none sm:w-auto bg-primary hover:bg-emerald-400 text-emerald-950 font-bold py-3 px-6 sm:px-12 rounded-full shadow-[0_4px_20px_rgba(52,211,153,0.4)] flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95">
-                    Continue Journey <ArrowRight className="w-5 h-5" />
-                  </motion.button>
-                )}
+
+                <AnimatePresence>
+                  {!lastChoiceContext && (
+                    <motion.div exit={{ opacity: 0, y: 20 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full max-w-6xl">
+                      {activeCard.options.map((choice, idx) => (
+                        <GameCard key={idx} choice={choice} index={idx} onClick={(c) => handleChoice(c, idx)} disabled={isProcessing} />
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
-
-            <AnimatePresence>
-              {!lastChoiceContext && (
-                <motion.div exit={{ opacity: 0, y: 20 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full max-w-6xl">
-                  {activeCard.options.map((choice, idx) => (
-                    <GameCard key={idx} choice={choice} index={idx} onClick={(c) => handleChoice(c, idx)} disabled={isProcessing} />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          </>
         )}
       </div>
     </div>
@@ -316,3 +314,40 @@ const StatCard = ({ icon, label, value, color }: { icon: ReactNode, label: strin
     </div>
   </div>
 );
+
+// ─── New Narrative Component ────────────────────────────────────────────────────────────
+const NarrativeView = ({ card, onContinue }: { card: SituationCard, onContinue: () => void }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex-1 flex flex-col items-center justify-center w-full mt-8"
+    >
+      <div className="max-w-3xl w-full bg-emerald-950/80 p-8 sm:p-12 rounded-3xl border border-emerald-500/30 backdrop-blur-xl shadow-[0_0_50px_rgba(52,211,153,0.1)] text-center relative overflow-hidden">
+
+        {/* Decorative Background Elements */}
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
+        <BookOpen className="w-24 h-24 mx-auto mb-6 text-emerald-500/20" />
+
+        <h1 className="font-display text-3xl md:text-5xl font-black text-white mb-4 tracking-tight drop-shadow-md">
+          {card.title || `Year ${card.year}`}
+        </h1>
+
+        <div className="w-16 h-1 bg-primary mx-auto mb-8 rounded-full opacity-50" />
+
+        <p className="text-lg md:text-xl text-emerald-50 leading-relaxed mb-12 drop-shadow">
+          {card.scenario}
+        </p>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onContinue}
+          className="bg-primary hover:bg-emerald-400 text-emerald-950 font-black text-lg py-4 px-10 rounded-full shadow-[0_4px_20px_rgba(52,211,153,0.4)] flex items-center justify-center gap-3 mx-auto transition-all"
+        >
+          Begin Chapter <ArrowRight className="w-6 h-6" />
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+};

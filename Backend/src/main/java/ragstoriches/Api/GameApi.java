@@ -47,8 +47,13 @@ public class GameApi {
     // --- READS ---
 
     public List<Card> getAllCards() {
-        return cardCollection.find().into(new ArrayList<>());
-    }
+    // Adding Sorts.ascending ensures the Year 1 Narrative (0) 
+    // comes before Situation 1, and Year 2 Narrative (10.5) 
+    // comes exactly after Situation 10.
+    return cardCollection.find()
+                         .sort(Sorts.ascending("situationId"))
+                         .into(new ArrayList<>());
+}
 
     // --- UPDATED: Safe ID Fetching ---
     public User getUser(String userId) {
